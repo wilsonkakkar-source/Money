@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Money"><title>Money</title><meta name="theme-color" content="#0f5e4a"><title>Wilson's Money</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="K Home Finances"><title>K Home Finances</title><meta name="theme-color" content="#0f5e4a"><title>K Home Finances</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -156,7 +156,7 @@ details.more .panel{border:0;border-radius:0}
 </head><body><div class="wrap">
   <header class="top" id="top">
     <div class="toprow">
-      <h1>Wilson's Money</h1>
+      <h1>K Home Finances</h1>
       <span style="display:flex;gap:10px;align-items:center"><span class="small muted" id="monthname"></span><button class="askbtn primary" id="askbtn" hidden><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/></svg>Ask Claude</button></span>
     </div>
     <div class="summary" aria-label="Monthly summary">
@@ -745,7 +745,7 @@ details.more .panel{border:0;border-radius:0}
     const upcoming = events(T - 7 * DAY, T + 21 * DAY).filter(e => e.type === 'bill').map(e => ({bill_id:e.id, name:e.name, due:iso(e.d), amount:e.amount, paid:e.paid}));
     return JSON.stringify({today:iso(T), bills, paychecks:S.income.map(i => ({id:i.id, source:i.source, amount:+i.amount, frequency:i.frequency, anchor_date:i.anchor_date})), owed:S.owed.map(o => ({id:o.id, name:o.name, balance:+o.balance, note:o.note || ''})), payments_due_last_week_to_3_weeks_out:upcoming});
   }
-  const RULES = `You are the assistant inside Wilson's personal money tracker app. You change his bills, paychecks, paid ticks and owed balances using the tools. Rules:
+  const RULES = `You are the assistant inside K Home Finances, the household money tracker for Wilson and his wife. You change his bills, paychecks, paid ticks and owed balances using the tools. Rules:
 - Only change what he asks. If his request is ambiguous (which of two similar bills, what amount), ask one short question instead of guessing.
 - Match existing items by name; reuse their id when updating so nothing gets duplicated. Create a new item only when nothing matches.
 - Monthly bills need due_day (1-31). Weekly bills need first_due (YYYY-MM-DD). Use last_due for a final payment, first_due for a loan that starts later.
