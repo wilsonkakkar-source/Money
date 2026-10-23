@@ -1,0 +1,1060 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Money"><title>Money</title><meta name="theme-color" content="#0f5e4a"><title>Wilson's Money</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one phone-first column, a sticky month summary on top, four tabs in a bottom bar like a banking app. */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --ink:#15211d; --muted:#5f6d68; --line:#dde3e0;
+  --in:#13795b; --out:#b4462f; --accent:#0f5e4a; --accent-ink:#ffffff; --warn:#a36a00; --chip:#e8eeeb;
+  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body:"Figtree", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1513; --surface:#16201d; --ink:#e6eeea; --muted:#93a39d; --line:#26332f;
+  --in:#4fc79c; --out:#ef8a72; --accent:#4fc79c; --accent-ink:#06120e; --warn:#e2b04d; --chip:#1e2a26; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1513; --surface:#16201d; --ink:#e6eeea; --muted:#93a39d; --line:#26332f;
+  --in:#4fc79c; --out:#ef8a72; --accent:#4fc79c; --accent-ink:#06120e; --warn:#e2b04d; --chip:#1e2a26; color-scheme:dark}
+
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px)}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 calc(84px + env(safe-area-inset-bottom,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:640px;margin-inline:auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:1.5rem;font-weight:700}
+h2{font-size:1.1rem;font-weight:700}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.muted{color:var(--muted)}
+.small{font-size:.82rem}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px;border-bottom:1px solid var(--line)}
+.toprow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.summary div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.summary .num{font-size:1.15rem;font-weight:500}
+.in{color:var(--in)} .out{color:var(--out)}
+
+section{display:flex;flex-direction:column;gap:10px}
+.sechead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;padding:14px 16px;min-height:56px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .name{font-weight:500;overflow-wrap:anywhere}
+.row .meta{font-size:.8rem;color:var(--muted)}
+.row.done .name,.row.done .amt{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+.row.pay{background:color-mix(in srgb,var(--in) 7%,var(--surface))}
+.daysep{padding:8px 14px 4px;font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;border-top:1px solid var(--line);background:var(--bg)}
+.panel .daysep:first-child{border-top:0}
+.amt{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+
+.tick{appearance:none;width:30px;height:30px;border:2px solid var(--line);border-radius:7px;display:grid;place-items:center;cursor:pointer;margin:0;background:var(--surface)}
+.tick:checked{background:var(--accent);border-color:var(--accent)}
+.tick:checked::after{content:"";width:6px;height:11px;border:solid var(--accent-ink);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.tick:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--in) 18%,transparent);color:var(--in);font-weight:700}
+
+.chip{display:inline-block;font-size:.7rem;padding:1px 7px;border-radius:999px;background:var(--chip);color:var(--muted);font-weight:600;letter-spacing:.02em;vertical-align:1px}
+.chip.late{background:color-mix(in srgb,var(--out) 16%,transparent);color:var(--out)}
+.chip.soon{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px;font-weight:600}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.danger{color:var(--out)}
+button.link{border:0;background:none;padding:4px 0;color:var(--accent)}
+.rowbtn{all:unset;display:contents;cursor:pointer}
+
+details.wk{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+details.wk summary{list-style:none;cursor:pointer;padding:12px 14px;display:grid;grid-template-columns:minmax(0,1.3fr) repeat(3,minmax(0,1fr));gap:8px;align-items:baseline}
+details.wk summary::-webkit-details-marker{display:none}
+details.wk summary .wl{font-weight:600}
+details.wk[open] summary{border-bottom:1px solid var(--line)}
+details.wk.now{border-color:var(--accent)}
+.wkcell{display:flex;flex-direction:column;min-width:0;text-align:right}
+.wkcell .num{font-size:.92rem}
+@media (max-width:430px){details.wk summary{grid-template-columns:repeat(3,minmax(0,1fr))}details.wk summary .wl{grid-column:1/-1}.wkcell{text-align:left}}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));
+  display:grid;grid-template-columns:repeat(5,1fr)}
+nav.tabs button{border:0;background:none;padding:8px 4px;font-size:.78rem;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+nav.tabs button[aria-current="page"]{color:var(--accent)}
+
+.sheet-back{position:fixed;inset:0;background:rgb(0 0 0 / .4);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;max-height:92%;overflow:auto;border-radius:16px 16px 0 0;
+  padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px}
+form.f{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+form.f .full{grid-column:1/-1}
+form.f label{display:flex;flex-direction:column;gap:5px;font-size:.8rem;font-weight:600;color:var(--muted);min-width:0}
+input,select{font:16px var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 10px;width:100%;min-width:0}
+.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.actions .grow{margin-right:auto}
+.notice{padding:14px;border:1px dashed var(--line);border-radius:var(--r);color:var(--muted);text-align:center}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:.85rem;z-index:30}
+.askbtn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:.85rem}
+.askbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8}
+.chat{display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow:auto}
+.msg{padding:10px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-width:92%}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink)}
+.msg.ai{align-self:flex-start;background:var(--bg);border:1px solid var(--line)}
+.msg.log{align-self:flex-start;font-size:.8rem;color:var(--muted);padding:2px 4px}
+textarea{font:16px var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 10px;width:100%;min-height:72px;resize:vertical}
+.alerts .row{grid-template-columns:auto minmax(0,1fr)}
+.sev{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;white-space:nowrap}
+.sev.critical{background:color-mix(in srgb,var(--out) 18%,transparent);color:var(--out)}
+.sev.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.sev.info{background:var(--chip);color:var(--muted)}
+.sev.good{background:color-mix(in srgb,var(--in) 16%,transparent);color:var(--in)}
+.take{padding:12px 14px;white-space:pre-wrap;border-top:1px solid var(--line);font-size:.92rem}
+.tl{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;align-items:end;height:110px;padding:12px 14px 0}
+.tl div{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+.tl i{display:block;width:100%;max-width:22px;border-radius:4px 4px 0 0;background:var(--out)}
+.tl i.ok{background:var(--in)}
+.tlx{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;padding:4px 14px 10px;font-size:.68rem;color:var(--muted);text-align:center}
+.save{font-family:var(--mono);font-size:.8rem;color:var(--in);white-space:nowrap}
+.status{border-radius:16px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);background:var(--surface)}
+.status.bad{background:color-mix(in srgb,var(--out) 12%,var(--surface));border-color:color-mix(in srgb,var(--out) 40%,var(--line))}
+.status.good{background:color-mix(in srgb,var(--in) 12%,var(--surface));border-color:color-mix(in srgb,var(--in) 40%,var(--line))}
+.status .big{font-family:var(--display);font-size:1.55rem;font-weight:700;line-height:1.15;text-wrap:balance}
+.status .sub{color:var(--muted);font-size:.95rem}
+.prog{height:10px;border-radius:5px;background:var(--chip);overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;background:var(--in);transition:width .4s}
+.todo{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:16px;border-top:1px solid var(--line);min-height:64px}
+.todo:first-child{border-top:0}
+.todo .t{font-weight:600;font-size:1.02rem}
+.todo .d{color:var(--muted);font-size:.85rem}
+.ico{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:1rem}
+.ico.pay{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.ico.chk{background:color-mix(in srgb,var(--out) 16%,transparent);color:var(--out)}
+.ico.cash{background:color-mix(in srgb,var(--out) 16%,transparent);color:var(--out)}
+details.more{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+details.more>summary{list-style:none;cursor:pointer;padding:16px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:56px}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::after{content:"＋";color:var(--muted);font-weight:400}
+details.more[open]>summary::after{content:"－"}
+details.more[open]>summary{border-bottom:1px solid var(--line)}
+details.more .panel{border:0;border-radius:0}
+.allclear{padding:22px 16px;text-align:center;font-weight:600;color:var(--in)}
+@media (prefers-reduced-motion:no-preference){.celebrate{animation:cel .5s ease-out}@keyframes cel{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(1)}}}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{border-radius:999px;font-weight:500;padding:10px 14px;text-align:left}
+.askhero{display:flex;flex-direction:column;gap:12px;padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.cat h3{font-size:.95rem;padding:10px 14px 2px;color:var(--muted);font-family:var(--body);font-weight:600}
+.bar{height:6px;border-radius:3px;background:var(--chip);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--out)}
+@media (prefers-reduced-motion:no-preference){.toast{animation:pop .2s ease-out}@keyframes pop{from{opacity:0;transform:translate(-50%,6px)}}}
+</style>
+
+</head><body><div class="wrap">
+  <header class="top" id="top">
+    <div class="toprow">
+      <h1>Wilson's Money</h1>
+      <span style="display:flex;gap:10px;align-items:center"><span class="small muted" id="monthname"></span><button class="askbtn primary" id="askbtn" hidden><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/></svg>Ask Claude</button></span>
+    </div>
+    <div class="summary" aria-label="Monthly summary">
+      <div><span class="label">Pay / month</span><span class="num in" id="s-in">—</span></div>
+      <div><span class="label">Bills / month</span><span class="num out" id="s-out">—</span></div>
+      <div><span class="label">Left over</span><span class="num" id="s-left">—</span></div>
+    </div>
+  </header>
+  <main id="view"></main>
+</div>
+
+<nav class="tabs" aria-label="Sections">
+  <button data-tab="home" aria-current="page"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Today</button>
+  <button data-tab="weeks"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Weeks</button>
+  <button data-tab="bills"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Bills</button>
+  <button data-tab="ask"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8.5 9.5h7M8.5 12.5h4"/></svg>Ask</button>
+  <button data-tab="money"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Pay &amp; owed</button>
+</nav>
+
+<script>
+(() => {
+  const S = { bills: [], income: [], paid: new Set(), owed: [], settings: {}, ready: {bills:false,income:false,paid:false,owed:false,settings:false}, db: null, tab: 'home', canWrite: true };
+  const DAY = 864e5;
+  const money = new Intl.NumberFormat('en-US', {style:'currency', currency:'USD'});
+  const money0 = new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:0});
+  const $ = id => document.getElementById(id);
+  const el = (tag, attrs = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === 'class') n.className = v; else if (k.startsWith('on')) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? '' : v);
+    }
+    for (const k of kids.flat()) if (k != null && k !== false) n.append(k.nodeType ? k : String(k));
+    return n;
+  };
+
+  // ---- dates (local calendar day, held as UTC midnight ms) ----
+  const now = new Date();
+  const T = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const iso = ms => new Date(ms).toISOString().slice(0, 10);
+  const parse = s => s ? Date.parse(s + 'T00:00:00Z') : NaN;
+  const fmtDay = ms => new Date(ms).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', timeZone:'UTC'});
+  const fmtShort = ms => new Date(ms).toLocaleDateString('en-US', {month:'short', day:'numeric', timeZone:'UTC'});
+  const ord = n => n + (['th','st','nd','rd'][(n % 100 - 20) % 10] || ['th','st','nd','rd'][n % 100] || 'th');
+  const monthDay = (y, m, d) => Date.UTC(y, m, Math.min(d, new Date(Date.UTC(y, m + 1, 0)).getUTCDate()));
+  const weekStart = T - ((new Date(T).getUTCDay() + 6) % 7) * DAY;
+
+  function billDates(b, from, to) {
+    const out = [], first = parse(b.first_due), last = parse(b.last_due);
+    const ok = d => d >= from && d < to && !(first > d) && !(last < d);
+    if (b.frequency === 'weekly') {
+      const a = isNaN(first) ? T : first;
+      for (let d = a + Math.max(0, Math.ceil((from - a) / (7 * DAY))) * 7 * DAY; d < to; d += 7 * DAY) if (ok(d)) out.push(d);
+    } else {
+      const f = new Date(from); let y = f.getUTCFullYear(), m = f.getUTCMonth() - 1;
+      for (let k = 0; k < 14; k++) { const d = monthDay(y, m + k, +b.due_day || 1); if (d >= to) break; if (ok(d)) out.push(d); }
+    }
+    return out;
+  }
+  function payDates(i, from, to) {
+    const a = parse(i.anchor_date), out = [];
+    if (isNaN(a)) return out;
+    if (i.frequency === 'monthly') { const f = new Date(from); for (let k = -1; k < 14; k++) { const d = monthDay(f.getUTCFullYear(), f.getUTCMonth() + k, new Date(a).getUTCDate()); if (d >= from && d < to) out.push(d); } return out; }
+    const step = (i.frequency === 'weekly' ? 7 : 14) * DAY;
+    for (let d = a + Math.ceil((from - a) / step) * step; d < to; d += step) out.push(d);
+    return out;
+  }
+  const perMonth = (amt, freq) => +amt * (freq === 'weekly' ? 52 / 12 : freq === 'biweekly' ? 26 / 12 : 1);
+  const active = b => !(parse(b.last_due) < T);
+  const paidKey = (id, d) => id + '__' + iso(d);
+  const isPaid = (id, d) => S.paid.has(paidKey(id, d));
+
+  function events(from, to) {
+    const ev = [];
+    for (const b of S.bills) for (const d of billDates(b, from, to)) ev.push({type:'bill', d, b, id:b.id, name:b.name, amount:+b.amount, paid:isPaid(b.id, d)});
+    for (const i of S.income) for (const d of payDates(i, from, to)) ev.push({type:'pay', d, name:i.source, amount:+i.amount});
+    return ev.sort((x, y) => x.d - y.d || (x.type === 'pay' ? -1 : 1) || x.name.localeCompare(y.name));
+  }
+
+  // ---- heads up ----
+  function forecast() {
+    const bal = S.settings && S.settings.balance !== undefined && S.settings.balance !== '' ? +S.settings.balance : null;
+    const asOf = bal === null ? null : (parse(S.settings.as_of) || T);
+    const from = bal === null ? weekStart : asOf + DAY, to = weekStart + 56 * DAY;
+    const evs = events(from, to).filter(e => bal === null || e.type === 'pay' || !e.paid || e.d > T);
+    let run = bal ?? 0, low = {v: Infinity, d: null}, firstNeg = null;
+    for (const e of evs) { run += e.type === 'pay' ? e.amount : -e.amount; if (run < low.v) low = {v: run, d: e.d, e}; if (run < 0 && !firstNeg) firstNeg = {d: e.d, v: run, e}; }
+    return {bal, asOf, evs, end: run, low, firstNeg};
+  }
+  function insights() {
+    const out = [], add = (level, title, detail) => out.push({level, title, detail});
+    const f = forecast();
+    const ws = d => fmtShort(weekStart + Math.floor((d - weekStart) / (7 * DAY)) * 7 * DAY);
+    if (f.bal !== null) {
+      if (f.bal < 0) add('critical', 'Your checking is negative right now', `You entered ${money.format(f.bal)} on ${fmtShort(f.asOf)}. Bills coming out will bounce or overdraw until money comes in.`);
+      if (f.firstNeg && f.bal >= 0) add('critical', `Balance goes negative around ${fmtShort(f.firstNeg.d)}`, `After ${f.firstNeg.e.name} (${money.format(f.firstNeg.e.amount)}), checking would be about ${money.format(f.firstNeg.v)}. Lowest point: ${money.format(f.low.v)} on ${fmtShort(f.low.d)}.`);
+      else if (f.low.d && f.low.v < 300 && f.low.v >= 0) add('warn', `Tight around ${fmtShort(f.low.d)}`, `Checking dips to about ${money.format(f.low.v)} after ${f.low.e.name}.`);
+    } else {
+      add('info', 'Add your checking balance for exact warnings', 'Go to Pay & owed and enter what’s in checking today. Until then, warnings use paychecks only.');
+    }
+    // weeks where bills beat pay
+    for (let i = 0; i < 8; i++) {
+      const a = weekStart + i * 7 * DAY, ev = events(a, a + 7 * DAY);
+      const inn = ev.filter(e => e.type === 'pay').reduce((s, e) => s + e.amount, 0), outb = ev.filter(e => e.type === 'bill'), o = outb.reduce((s, e) => s + e.amount, 0);
+      if (o - inn > 500) { const big = outb.slice().sort((x, y) => y.amount - x.amount)[0]; add(o - inn > 2000 ? 'critical' : 'warn', `Week of ${fmtShort(a)}: ${money0.format(o - inn)} more going out than coming in`, `Biggest: ${big.name} ${money.format(big.amount)} on ${fmtShort(big.d)}. Set money aside from the weeks before.`); }
+    }
+    // not ticked / manual payments
+    const late = events(T - 10 * DAY, T).filter(e => e.type === 'bill' && !e.paid);
+    if (late.length) add('warn', `${late.length} bill${late.length > 1 ? 's' : ''} from the last 10 days not ticked`, late.slice(0, 4).map(e => `${e.name} ${money.format(e.amount)} (${fmtShort(e.d)})`).join(' · ') + (late.length > 4 ? ` · +${late.length - 4} more` : '') + '. Check they went through.');
+    const manual = events(T, T + 4 * DAY).filter(e => e.type === 'bill' && !e.paid && e.b.autopay !== 'Yes');
+    for (const e of manual) add('warn', `Pay ${e.name} by ${fmtShort(e.d)}`, `${money.format(e.amount)} · not on autopay${e.b.autopay === 'Unknown' ? ' as far as the app knows' : ''}.`);
+    // monthly gap
+    const inc = S.income.reduce((s, i) => s + perMonth(i.amount, i.frequency), 0), bills = S.bills.filter(active).reduce((s, b) => s + perMonth(b.amount, b.frequency), 0);
+    if (bills > inc) add('critical', `Bills are ${money0.format(bills - inc)} a month more than pay`, `${money0.format(bills)} in bills vs ${money0.format(inc)} from paychecks.`);
+    // owed
+    const owed = S.owed.reduce((s, o) => s + +o.balance, 0);
+    if (owed > 0) add('info', `${money0.format(owed)} owed with no set payment`, S.owed.map(o => `${o.name} ${money.format(+o.balance)}`).join(' · '));
+    // new bills starting
+    for (const b of S.bills.filter(b => b.first_due && parse(b.first_due) > T && parse(b.first_due) - T < 45 * DAY)) add('info', `${b.name} starts ${fmtShort(parse(b.first_due))}`, `${money.format(+b.amount)} a month from then on.`);
+    // plans ending
+    const ending = S.bills.filter(b => b.last_due && parse(b.last_due) >= T && parse(b.last_due) - T < 60 * DAY);
+    if (ending.length) add('good', `${ending.length} plan${ending.length > 1 ? 's' : ''} ending soon`, ending.map(b => `${b.name} after ${fmtShort(parse(b.last_due))}`).join(' · ') + ` · frees up ${money.format(ending.reduce((s, b) => s + perMonth(b.amount, b.frequency), 0))}/mo.`);
+    const order = {critical:0, warn:1, info:2, good:3};
+    return out.sort((a, b) => order[a.level] - order[b.level]);
+  }
+  // ---- ways to improve (no new income) ----
+  function monthsLeft(b, fromMs) { if (!b.last_due) return null; const l = parse(b.last_due); if (l < fromMs) return 0; const a = new Date(fromMs), z = new Date(l); return (z.getUTCFullYear() - a.getUTCFullYear()) * 12 + z.getUTCMonth() - a.getUTCMonth() + (z.getUTCDate() >= (b.due_day || 1) || true ? 1 : 0); }
+  function monthTotals(n) {
+    const out = [], d0 = new Date(T);
+    for (let k = 0; k < n; k++) { const a = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + k, 1), z = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + k + 1, 1);
+      out.push({a, total: S.bills.reduce((s, b) => s + billDates(b, a, z).length * +b.amount, 0)}); }
+    return out;
+  }
+  function improvements() {
+    const ideas = [], add = (title, detail, save) => ideas.push({title, detail, save});
+    const inc = S.income.reduce((s, i) => s + perMonth(i.amount, i.frequency), 0);
+    const bnpl = S.bills.filter(b => active(b) && /buy now|affirm|klarna/i.test(b.category + ' ' + b.name));
+    const bnplMo = bnpl.reduce((s, b) => s + perMonth(b.amount, b.frequency), 0);
+    // remaining balance per plan = payments left x amount
+    const left = b => { if (!b.last_due) return null; let n = 0; for (let k = 0; k < 40; k++) { const dd = new Date(T); const d = monthDay(dd.getUTCFullYear(), dd.getUTCMonth() + k, +b.due_day || 1); if (d > parse(b.last_due)) break; if (d >= T || !isPaid(b.id, d)) if (d >= T - 10 * DAY && !(d < T && isPaid(b.id, d))) n++; } return n; };
+    if (bnpl.length) {
+      add(`Stop adding Affirm/Klarna plans for now`, `${bnpl.length} plans cost ${money0.format(bnplMo)} a month. They end on their own over the next months. Each new plan pushes that relief back.`, null);
+      const small = bnpl.map(b => ({b, n: left(b)})).filter(x => x.n && x.n > 1).map(x => ({...x, bal: x.n * +x.b.amount})).sort((a, c) => a.bal - c.bal).slice(0, 4);
+      if (small.length) add('If you ever get a little extra, pay off the smallest plans first', small.map(x => `${x.b.name}: about ${money0.format(x.bal)} left, frees ${money.format(+x.b.amount)}/mo`).join(' · ') + '. Paying one off early drops that payment for good.', '+' + money0.format(small.reduce((s, x) => s + +x.b.amount, 0)) + '/mo');
+    }
+    const cars = S.bills.filter(b => active(b) && (/\b(auto|car|macan|porsche|vehicle)\b/i.test(b.name)) );
+    const carMo = cars.reduce((s, b) => s + perMonth(b.amount, b.frequency), 0);
+    if (cars.length >= 2) add(`Cars cost ${money0.format(carMo)} a month`, cars.map(b => `${b.name} ${money.format(+b.amount)}`).join(' · ') + '. Shopping the insurance (compare 2-3 quotes at renewal) is the easy step. If one car could go, that is the biggest single change after housing.', null);
+    const house = S.bills.filter(b => active(b) && /housing/i.test(b.category)).reduce((s, b) => s + perMonth(b.amount, b.frequency), 0);
+    if (house && inc) add(`Housing is ${Math.round(house / inc * 100)}% of take-home pay`, 'Lenders usually like this under about 30%. Things to ask about: a property-tax assessment grievance (Suffolk County runs these each year), whether your escrow is overcollecting, shopping homeowners insurance, and what hardship or modification options your lender offers.', null);
+    const mort = S.bills.find(b => active(b) && /mortgage/i.test(b.name));
+    if (mort) { const per = Math.ceil(+mort.amount / (52 / 12) / 10) * 10; add(`Set aside ${money0.format(per)} a week for the mortgage`, `It's due once a month but you're paid weekly. Moving ${money0.format(per)} into savings every Friday means the ${fmtShort(billDates(mort, T, T + 40 * DAY)[0] || T)} payment is already covered when it comes.`, null); }
+    const cards = S.bills.filter(b => active(b) && /credit card/i.test(b.category));
+    if (cards.length) add('Move card due dates to the week after your bigger check', `Most card issuers let you pick your due date online. Putting ${cards.map(b => b.name).join(', ')} right after a P.C. Richard payday keeps them from landing in short weeks.`, null);
+    const manual = S.bills.filter(b => active(b) && b.autopay !== 'Yes');
+    if (manual.length) add('Turn on autopay where you can', `${manual.map(b => b.name).join(', ')} ${manual.length > 1 ? 'aren’t' : 'isn’t'} on autopay as far as the app knows. Autopay at the minimum avoids late fees, which add up fast.`, null);
+    if (S.owed.length) add('Get utilities onto a plan you can keep', S.owed.map(o => o.name).join(' and ') + ' have balances with no set payment. Ask each about a budget plan or payment agreement sized to what you can pay, and about any assistance programs.', null);
+    const mt = monthTotals(12), now = mt[0].total, low = mt.reduce((m, x) => x.total < m.total ? x : m, mt[0]);
+    if (now - low.total > 50) add(`Your bills drop by about ${money0.format(now - low.total)} a month by ${new Date(low.a).toLocaleDateString('en-US', {month:'short', year:'numeric', timeZone:'UTC'})}`, 'That’s plans finishing, with nothing new added. See the chart above.', '+' + money0.format(now - low.total) + '/mo');
+    return ideas;
+  }
+  let planText = '', planBusy = false;
+  function improveSection() {
+    const mt = monthTotals(12), max = Math.max(...mt.map(x => x.total), 1);
+    const inc = S.income.reduce((s, i) => s + perMonth(i.amount, i.frequency), 0);
+    const chart = el('div', {class:'panel'},
+      el('div', {class:'row'}, el('span'), el('div', {}, el('div', {class:'name'}, 'Monthly bills, next 12 months'), el('div', {class:'meta'}, 'Green months fit inside your pay of ' + money0.format(inc) + '. Red ones don’t.')), el('span')),
+      el('div', {class:'tl', role:'img', 'aria-label':'Bills per month: ' + mt.map(x => new Date(x.a).toLocaleDateString('en-US', {month:'short', timeZone:'UTC'}) + ' ' + money0.format(x.total)).join(', ')},
+        mt.map(x => el('div', {title: money0.format(x.total)}, el('i', {class: x.total <= inc ? 'ok' : '', style:'height:' + Math.max(4, x.total / max * 100).toFixed(0) + '%'})))),
+      el('div', {class:'tlx'}, mt.map(x => el('span', {}, new Date(x.a).toLocaleDateString('en-US', {month:'narrow', timeZone:'UTC'})))));
+    const list = el('div', {class:'panel'});
+    for (const i of improvements()) list.append(el('details', {class:'more', style:'border:0;border-top:1px solid var(--line);border-radius:0'}, el('summary', {}, el('span', {}, i.title, i.save ? el('span', {class:'save', style:'margin-left:8px'}, i.save) : null)), el('div', {class:'meta', style:'padding:0 16px 16px'}, i.detail)));
+    if (typeof sampleFn === 'function') {
+      const out = el('div', {class:'take', hidden: !planText}, planText);
+      const btn = el('button', {class:'link', style:'padding:10px 14px', disabled: planBusy}, planText ? 'Ask Claude again' : 'Ask Claude for a plan');
+      btn.onclick = async () => {
+        planBusy = true; btn.disabled = true; out.hidden = false; out.textContent = 'Thinking…';
+        const prompt = `Wilson can't increase his income right now. Using his bills below, give him a practical plan to close the gap between bills and pay, in order of impact: what to cut, pause, renegotiate, refinance, consolidate or re-time, with dollar amounts and who to call. Consider his mortgage, two car loans, Upstart personal loan, credit card minimums, Affirm/Klarna plans (with end dates), and balances owed. 6-8 lines, each starting with "- ", plain language, specific. No intro. Say "talk to a nonprofit credit counselor (NFCC.org)" if debt relief would help. Don't recommend specific investments or give legal advice.\n\nToday ${iso(T)}. Pay per month ${money0.format(inc)}: ${S.income.map(i => `${i.source} ${money.format(+i.amount)} ${i.frequency}`).join('; ')}.\nBills: ${S.bills.filter(active).map(b => `${b.name} ${money.format(+b.amount)} ${b.frequency === 'weekly' ? 'weekly' : 'monthly day ' + b.due_day} [${b.category}]${b.autopay === 'Yes' ? '' : ' [not autopay]'}${b.last_due ? ' ends ' + b.last_due : ''}${b.first_due && parse(b.first_due) > T ? ' starts ' + b.first_due : ''}`).join('\n')}\nOwed with no set payment: ${S.owed.map(o => o.name + ' ' + money.format(+o.balance)).join(', ') || 'none'}\nMonthly bill totals next 12 months: ${mt.map(x => iso(x.a).slice(0, 7) + ' ' + money0.format(x.total)).join(', ')}`;
+        try { const r = await sampleFn(prompt, {cache:{gcTime: 60 * 60 * 1000}, onText:({text}) => { out.textContent = text; }}); planText = r.text; out.textContent = r.text; }
+        catch (e) { planText = ''; out.textContent = e.code === 'rate_limited' ? 'You’ve hit your Claude usage limit for now. Try later.' : e.code === 'not_granted' ? 'Claude isn’t allowed on this page yet.' : 'Couldn’t get a plan. Try again.'; }
+        planBusy = false; btn.disabled = false; btn.textContent = 'Ask Claude again';
+      };
+      list.append(out, el('div', {class:'row', style:'display:block;padding:0'}, btn));
+    }
+    return el('section', {}, el('div', {class:'sechead'}, el('h2', {}, 'Ways to free up money'), el('span', {class:'small muted'}, 'Ideas, not financial advice')), chart, el('p', {class:'small muted', style:'margin:0'}, 'Tap an idea to see what to do.'), list);
+  }
+
+  let takeText = '', takeBusy = false;
+  function headsUp() {
+    const list = insights();
+    const p = el('div', {class:'panel alerts'});
+    for (const a of list) p.append(el('div', {class:'row'}, el('span', {class:'sev ' + a.level}, {critical:'Urgent', warn:'Watch', info:'Note', good:'Good'}[a.level]), el('div', {}, el('div', {class:'name'}, a.title), el('div', {class:'meta'}, a.detail))));
+    if (!list.length) p.append(el('div', {class:'notice'}, 'Nothing to flag right now.'));
+    if (typeof sampleFn === 'function') {
+      const out = el('div', {class:'take', hidden: !takeText}, takeText);
+      const btn = el('button', {class:'link', style:'padding:10px 14px', disabled: takeBusy}, takeText ? 'Ask Claude again' : 'Ask Claude what to watch out for');
+      btn.onclick = async () => {
+        takeBusy = true; btn.disabled = true; out.hidden = false; out.textContent = 'Thinking…';
+        const f = forecast();
+        const prompt = `You help Wilson manage his household bills. Today is ${iso(T)}. Using the data below, list the 3-5 most important things he should watch or do in the next 4 weeks: coming shortfalls or a negative balance, bills to pay manually, late or failed-looking payments, and anything that would ease the crunch (e.g. plans ending, which payments could be moved to a payday week). Be specific with dates and dollar amounts. Plain short sentences, one per line, starting with "- ". No intro, no markdown headings. Don't give investment or legal advice.\n\nApp warnings:\n${insights().map(a => '- ' + a.title + ': ' + a.detail).join('\n')}\n\nChecking balance: ${f.bal === null ? 'not entered' : money.format(f.bal) + ' as of ' + iso(f.asOf)}\nNext 8 weeks (date, item, amount, paid?):\n${events(T - 7 * DAY, T + 56 * DAY).map(e => `${iso(e.d)} ${e.type === 'pay' ? '+' : '-'}${e.amount.toFixed(2)} ${e.name}${e.type === 'bill' ? (e.paid ? ' [paid]' : '') + (e.b.autopay === 'Yes' ? ' [autopay]' : ' [manual]') : ''}`).join('\n')}\nOwed with no set payment: ${S.owed.map(o => o.name + ' ' + money.format(+o.balance)).join(', ') || 'none'}`;
+        try { const r = await sampleFn(prompt, {cache:{gcTime: 30 * 60 * 1000}, onText:({text}) => { out.textContent = text; }}); takeText = r.text; out.textContent = r.text; }
+        catch (e) { takeText = ''; out.textContent = e.code === 'rate_limited' ? 'You’ve hit your Claude usage limit for now. Try later.' : e.code === 'not_granted' ? 'Claude isn’t allowed on this page yet.' : 'Couldn’t get Claude’s take. Try again.'; }
+        takeBusy = false; btn.disabled = false; btn.textContent = 'Ask Claude again';
+      };
+      p.append(out, el('div', {class:'row', style:'display:block;padding:0'}, btn));
+    }
+    const urgent = list.filter(a => a.level === 'critical').length;
+    return el('details', {class:'more', id:'watch'}, el('summary', {}, el('span', {}, 'Watch list ', el('span', {class:'chip' + (urgent ? ' late' : '')}, urgent ? urgent + ' urgent' : list.length + '')), ), p);
+  }
+
+  // ---- summary ----
+  function renderSummary() {
+    const inc = S.income.reduce((s, i) => s + perMonth(i.amount, i.frequency), 0);
+    const out = S.bills.filter(active).reduce((s, b) => s + perMonth(b.amount, b.frequency), 0);
+    $('s-in').textContent = money0.format(inc);
+    $('s-out').textContent = money0.format(out);
+    const left = inc - out, l = $('s-left');
+    l.textContent = (left < 0 ? '−' : '') + money0.format(Math.abs(left));
+    l.className = 'num ' + (left < 0 ? 'out' : 'in');
+    $('monthname').textContent = new Date(T).toLocaleDateString('en-US', {month:'long', year:'numeric', timeZone:'UTC'});
+  }
+
+  // ---- rows ----
+  function eventRow(e) {
+    if (e.type === 'pay') return el('div', {class:'row pay'}, el('span', {class:'dot', 'aria-hidden':'true'}, '+'),
+      el('div', {}, el('div', {class:'name'}, e.name), el('div', {class:'meta'}, 'Payday')), el('span', {class:'amt in'}, '+' + money.format(e.amount)));
+    const late = !e.paid && e.d < T, soon = !e.paid && e.d >= T && e.d - T <= 2 * DAY;
+    const box = el('input', {type:'checkbox', class:'tick', id:'t-' + paidKey(e.id, e.d), 'aria-label':'Mark ' + e.name + ' paid for ' + fmtShort(e.d)});
+    box.checked = e.paid; box.disabled = !S.canWrite;
+    box.addEventListener('change', () => togglePaid(e, box.checked, box));
+    const meta = [e.b.autopay === 'Yes' ? 'Autopay' : null, e.b.category].filter(Boolean).join(' · ');
+    return el('div', {class:'row' + (e.paid ? ' done' : '')}, box,
+      el('div', {}, el('div', {class:'name'}, e.name, ' ', late ? el('span', {class:'chip late'}, 'Not ticked') : soon ? el('span', {class:'chip soon'}, e.d === T ? 'Today' : 'Soon') : null),
+        el('div', {class:'meta'}, meta)),
+      el('span', {class:'amt'}, '−' + money.format(e.amount)));
+  }
+  function dayGrouped(evs) {
+    const p = el('div', {class:'panel'}); let last = null;
+    for (const e of evs) {
+      if (e.d !== last) { p.append(el('div', {class:'daysep'}, e.d === T ? 'Today · ' + fmtDay(e.d) : fmtDay(e.d))); last = e.d; }
+      p.append(eventRow(e));
+    }
+    return p;
+  }
+
+  // ---- views ----
+  function viewHome() {
+    const wkEnd = weekStart + 7 * DAY;
+    const wk = events(weekStart, wkEnd);
+    const inn = wk.filter(e => e.type === 'pay').reduce((t, e) => t + e.amount, 0);
+    const wkBills = wk.filter(e => e.type === 'bill');
+    const outw = wkBills.reduce((t, e) => t + e.amount, 0), net = inn - outw;
+    const paidN = wkBills.filter(e => e.paid).length;
+    const f = forecast();
+    // the one-line answer
+    let big, sub, mood;
+    if (f.bal !== null && f.firstNeg && f.firstNeg.d < T + 14 * DAY) { mood = 'bad'; big = `Money runs short on ${fmtShort(f.firstNeg.d)}`; sub = `Checking would drop to ${money0.format(f.firstNeg.v)} after ${f.firstNeg.e.name}.`; }
+    else if (net < 0) { mood = 'bad'; big = `This week you’re ${money0.format(-net)} short`; sub = `${money0.format(outw)} in bills, ${money0.format(inn)} coming in.`; }
+    else { mood = 'good'; big = `This week is covered`; sub = `${money0.format(net)} left after this week’s bills.`; }
+    // do now: max 3
+    const todo = [];
+    for (const e of events(T - 10 * DAY, T).filter(e => e.type === 'bill' && !e.paid)) todo.push({e, kind:'chk', t:`Did ${e.name} go through?`, d:`${money.format(e.amount)} was due ${fmtShort(e.d)}. Tick it if it did.`});
+    for (const e of events(T, T + 4 * DAY).filter(e => e.type === 'bill' && !e.paid && e.b.autopay !== 'Yes')) todo.push({e, kind:'pay', t:`Pay ${e.name}`, d:`${money.format(e.amount)} by ${e.d === T ? 'today' : fmtDay(e.d)}. Not on autopay.`});
+    const todoBox = el('div', {class:'panel'});
+    const shown = todo.slice(0, 3);
+    for (const x of shown) {
+      const box = el('input', {type:'checkbox', class:'tick', id:'td-' + paidKey(x.e.id, x.e.d), 'aria-label':'Done: ' + x.t});
+      box.disabled = !S.canWrite;
+      box.addEventListener('change', () => togglePaid(x.e, box.checked, box));
+      todoBox.append(el('div', {class:'todo'}, el('span', {class:'ico ' + x.kind, 'aria-hidden':'true'}, x.kind === 'pay' ? '$' : '?'), el('div', {}, el('div', {class:'t'}, x.t), el('div', {class:'d'}, x.d)), box));
+    }
+    if (!shown.length) todoBox.append(el('div', {class:'allclear'}, '✓ Nothing to do right now'));
+    // next up: 3 unpaid bills
+    const upcoming = events(T, T + 15 * DAY);
+    const next3 = upcoming.filter(e => e.type === 'bill' && !e.paid).slice(0, 3);
+    const nextBox = el('div', {class:'panel'}); next3.forEach(e => nextBox.append(eventRow(e)));
+    if (!next3.length) nextBox.append(el('div', {class:'allclear'}, 'No bills in the next two weeks'));
+    return el('div', {class:'wrap'},
+      el('div', {class:'status ' + mood, role:'status'},
+        el('span', {class:'label'}, 'This week · ' + fmtShort(weekStart) + ' – ' + fmtShort(wkEnd - DAY)),
+        el('div', {class:'big'}, big), el('div', {class:'sub'}, sub),
+        wkBills.length ? el('div', {}, el('div', {class:'prog', role:'progressbar', 'aria-valuemin':'0', 'aria-valuemax':String(wkBills.length), 'aria-valuenow':String(paidN), 'aria-label':'Bills paid this week'}, el('i', {style:'width:' + (paidN / wkBills.length * 100).toFixed(0) + '%'})),
+          el('div', {class:'small muted', style:'margin-top:6px'}, `${paidN} of ${wkBills.length} bills this week done`)) : null),
+      el('section', {}, el('div', {class:'sechead'}, el('h2', {}, 'Do now'), todo.length > 3 ? el('span', {class:'small muted'}, '+' + (todo.length - 3) + ' more after these') : null), todoBox),
+      el('section', {}, el('div', {class:'sechead'}, el('h2', {}, 'Next up'), el('span', {class:'small muted'}, 'Tick when paid')), nextBox),
+      headsUp(),
+      el('details', {class:'more'}, el('summary', {}, 'Everything in the next 2 weeks'), upcoming.length ? dayGrouped(upcoming) : el('div', {class:'notice'}, 'Nothing due.')));
+  }
+
+  function viewWeeks() {
+    const box = el('div', {class:'wrap'}, el('section', {}, el('div', {class:'sechead'}, el('h2', {}, 'Week by week'), el('span', {class:'small muted'}, 'Mon–Sun, 8 weeks'))));
+    let run = 0;
+    for (let i = 0; i < 8; i++) {
+      const a = weekStart + i * 7 * DAY, evs = events(a, a + 7 * DAY);
+      const inn = evs.filter(e => e.type === 'pay').reduce((s, e) => s + e.amount, 0);
+      const out = evs.filter(e => e.type === 'bill').reduce((s, e) => s + e.amount, 0);
+      const net = inn - out; run += net;
+      const sgn = v => (v < 0 ? '−' : '+') + money0.format(Math.abs(v));
+      const d = el('details', {class:'wk' + (i === 0 ? ' now' : ''), open: i === 0},
+        el('summary', {},
+          el('span', {class:'wl'}, (i === 0 ? 'This week · ' : '') + fmtShort(a) + ' – ' + fmtShort(a + 6 * DAY)),
+          el('span', {class:'wkcell'}, el('span', {class:'label'}, 'In'), el('span', {class:'num in'}, money0.format(inn))),
+          el('span', {class:'wkcell'}, el('span', {class:'label'}, 'Out'), el('span', {class:'num out'}, money0.format(out))),
+          el('span', {class:'wkcell'}, el('span', {class:'label'}, 'Left'), el('span', {class:'num ' + (net < 0 ? 'out' : 'in')}, sgn(net)))),
+        evs.length ? dayGrouped(evs) : el('div', {class:'notice'}, 'Nothing this week.'),
+        el('div', {class:'row'}, el('span'), el('span', {class:'small muted'}, 'Running total from this week'), el('span', {class:'amt ' + (run < 0 ? 'out' : 'in')}, sgn(run))));
+      d.querySelector('.panel')?.style.setProperty('border', '0');
+      d.querySelector('.panel')?.style.setProperty('border-radius', '0');
+      box.firstChild.append(d);
+    }
+    return box;
+  }
+
+  function viewBills() {
+    const list = S.bills.slice().sort((a, b) => (a.category || '').localeCompare(b.category || '') || perMonth(b.amount, b.frequency) - perMonth(a.amount, a.frequency));
+    const cats = {};
+    for (const b of list) (cats[b.category || 'Other'] ||= []).push(b);
+    const total = list.filter(active).reduce((s, b) => s + perMonth(b.amount, b.frequency), 0) || 1;
+    const wrap = el('div', {class:'wrap'}, improveSection(), el('div', {class:'sechead'}, el('h2', {}, 'Bills (' + list.length + ')'), S.canWrite ? el('button', {class:'primary', onclick:() => editBill(null)}, 'Add bill') : null));
+    if (!list.length) wrap.append(el('div', {class:'notice'}, 'No bills yet. Tap “Add bill” to add your first one.'));
+    const order = Object.entries(cats).sort((a, b) => b[1].reduce((s, x) => s + perMonth(x.amount, x.frequency), 0) - a[1].reduce((s, x) => s + perMonth(x.amount, x.frequency), 0));
+    for (const [cat, bs] of order) {
+      const sum = bs.filter(active).reduce((s, b) => s + perMonth(b.amount, b.frequency), 0);
+      const p = el('div', {class:'panel cat'},
+        el('div', {class:'row'}, el('span'), el('div', {}, el('div', {class:'name'}, cat), el('div', {class:'bar', 'aria-hidden':'true'}, el('i', {style:'width:' + Math.max(2, sum / total * 100).toFixed(1) + '%'}))), el('span', {class:'amt'}, money0.format(sum) + '/mo')));
+      for (const b of bs) {
+        const when = b.frequency === 'weekly' ? 'Weekly' : 'Monthly · ' + ord(+b.due_day);
+        const extra = [b.autopay === 'Yes' ? 'Autopay' : null, b.first_due && parse(b.first_due) > T ? 'Starts ' + fmtShort(parse(b.first_due)) : null, b.last_due ? (active(b) ? 'Last payment ' : 'Ended ') + fmtShort(parse(b.last_due)) : null].filter(Boolean).join(' · ');
+        const r = el('div', {class:'row', role: S.canWrite ? 'button' : null, tabindex: S.canWrite ? '0' : null, style: S.canWrite ? 'cursor:pointer' : null},
+          el('span', {class:'chip'}, b.frequency === 'weekly' ? 'WK' : ord(+b.due_day)),
+          el('div', {}, el('div', {class:'name'}, b.name), el('div', {class:'meta'}, [when, extra].filter(Boolean).join(' · '))),
+          el('span', {class:'amt' + (active(b) ? '' : ' muted')}, money.format(+b.amount)));
+        if (S.canWrite) { r.addEventListener('click', () => editBill(b)); r.addEventListener('keydown', ev => { if (ev.key === 'Enter') editBill(b); }); }
+        p.append(r);
+      }
+      wrap.append(p);
+    }
+    return wrap;
+  }
+
+  function viewMoney() {
+    const inc = el('div', {class:'panel'});
+    for (const i of S.income) {
+      const r = el('div', {class:'row', role:'button', tabindex:'0', style:'cursor:pointer'}, el('span', {class:'dot', 'aria-hidden':'true'}, '+'),
+        el('div', {}, el('div', {class:'name'}, i.source), el('div', {class:'meta'}, {weekly:'Every week', biweekly:'Every other week', monthly:'Monthly'}[i.frequency] + ' · next ' + fmtShort(payDates(i, T, T + 70 * DAY)[0] || T))),
+        el('span', {class:'amt in'}, money.format(+i.amount)));
+      if (S.canWrite) { r.addEventListener('click', () => editIncome(i)); r.addEventListener('keydown', ev => { if (ev.key === 'Enter') editIncome(i); }); }
+      inc.append(r);
+    }
+    if (!S.income.length) inc.append(el('div', {class:'notice'}, 'No paychecks yet.'));
+    const owed = el('div', {class:'panel'});
+    for (const o of S.owed) {
+      const r = el('div', {class:'row', role:'button', tabindex:'0', style:'cursor:pointer'}, el('span', {class:'chip late'}, 'Owed'),
+        el('div', {}, el('div', {class:'name'}, o.name), el('div', {class:'meta'}, o.note || 'No set payment')),
+        el('span', {class:'amt out'}, money.format(+o.balance)));
+      if (S.canWrite) { r.addEventListener('click', () => editOwed(o)); r.addEventListener('keydown', ev => { if (ev.key === 'Enter') editOwed(o); }); }
+      owed.append(r);
+    }
+    if (!S.owed.length) owed.append(el('div', {class:'notice'}, 'Nothing owed outside your bills.'));
+    const totalOwed = S.owed.reduce((s, o) => s + +o.balance, 0);
+    const bal = S.settings && S.settings.balance !== undefined && S.settings.balance !== '' ? +S.settings.balance : null;
+    const balRow = el('div', {class:'row', role:'button', tabindex:'0', style:'cursor:pointer'}, el('span', {class:'dot', 'aria-hidden':'true'}, '$'),
+      el('div', {}, el('div', {class:'name'}, 'Checking account'), el('div', {class:'meta'}, bal === null ? 'Tap to enter today’s balance' : 'As of ' + fmtShort(parse(S.settings.as_of) || T) + ' · update it every few days')),
+      el('span', {class:'amt ' + (bal !== null && bal < 0 ? 'out' : '')}, bal === null ? '—' : money.format(bal)));
+    if (S.canWrite) { balRow.addEventListener('click', editBalance); balRow.addEventListener('keydown', ev => { if (ev.key === 'Enter') editBalance(); }); }
+    return el('div', {class:'wrap'},
+      el('section', {}, el('div', {class:'sechead'}, el('h2', {}, 'Checking balance')), el('div', {class:'panel'}, balRow)),
+      el('section', {}, el('div', {class:'sechead'}, el('h2', {}, 'Paychecks'), S.canWrite ? el('button', {onclick:() => editIncome(null)}, 'Add') : null), inc),
+      el('section', {}, el('div', {class:'sechead'}, el('h2', {}, 'Owed, no set payment'), S.canWrite ? el('button', {onclick:() => editOwed(null)}, 'Add') : null),
+        el('p', {class:'small muted', style:'margin:0'}, 'Balances you owe that aren’t counted as monthly bills. Total ', el('span', {class:'num out'}, money.format(totalOwed)), '.'), owed),
+      syncSection(),
+      el('section', {}, el('h2', {}, 'Backup'),
+        el('p', {class:'small muted', style:'margin:0'}, 'Once you’re signed in, your data is kept in your Supabase account too. A copied backup is still a good extra safety net.'),
+        el('div', {class:'actions', style:'justify-content:flex-start'},
+          el('button', {onclick: async () => { const t = backupText(); try { await navigator.clipboard.writeText(t); toast('Backup copied'); } catch { const ta = el('textarea', {readonly:true}); ta.value = t; document.body.append(ta); ta.select(); try { document.execCommand('copy'); toast('Backup copied'); } catch { toast('Couldn’t copy'); } ta.remove(); } }}, 'Copy backup'),
+          el('button', {onclick: () => restoreSheet()}, 'Restore a backup'))));
+  }
+  function restoreSheet() {
+    const back = el('div', {class:'sheet-back'});
+    const ta = el('textarea', {id:'restoretext', placeholder:'Paste your backup here', 'aria-label':'Backup text'});
+    const msg = el('p', {class:'small out', style:'margin:0', hidden:true}, 'That doesn’t look like a backup from this app.');
+    const go = el('button', {class:'primary'}, 'Restore');
+    go.onclick = () => { try { restoreFrom(ta.value.trim()); back.remove(); toast('Backup restored'); } catch { msg.hidden = false; } };
+    back.append(el('div', {class:'sheet', role:'dialog', 'aria-modal':'true', 'aria-label':'Restore a backup'}, el('h2', {}, 'Restore a backup'), el('p', {class:'small muted', style:'margin:0'}, 'This replaces everything in the app with the backup.'), ta, msg, el('div', {class:'actions'}, el('button', {onclick:() => back.remove()}, 'Cancel'), go)));
+    back.addEventListener('click', ev => { if (ev.target === back) back.remove(); });
+    document.body.append(back); ta.focus();
+  }
+
+  const SUGGEST = ['Can I afford everything this week?', 'What should I pay first if money is tight?', 'When does my money get tight next?', 'Which plans end soonest?', 'I paid AT&T today', 'GEICO went up to $410'];
+  function viewAsk() {
+    if (typeof sampleFn !== 'function') return askSetup();
+    return el('div', {class:'wrap'},
+      el('div', {class:'askhero'},
+        el('h2', {}, 'Ask Claude'),
+        el('p', {class:'muted', style:'margin:0'}, 'Ask anything about your bills, or tell it what changed and it updates the app for you.'),
+        el('button', {class:'primary', style:'padding:14px;font-size:1rem', onclick:() => openAsk('')}, 'Start a question')),
+      el('section', {}, el('h2', {}, 'Try one'), el('div', {class:'chips'}, SUGGEST.map(q => el('button', {onclick:() => openAsk(q)}, q)))));
+  }
+  function askSetup() {
+    const inp = el('input', {id:'apikey', type:'password', autocomplete:'off', placeholder:'sk-ant-…', 'aria-label':'Anthropic API key'});
+    const msg = el('p', {class:'small out', style:'margin:0', hidden:true});
+    const save = el('button', {class:'primary'}, 'Save key');
+    save.onclick = async () => {
+      const k = inp.value.trim(); if (!/^sk-ant-/.test(k)) { msg.textContent = 'That doesn’t look like an Anthropic key. It starts with sk-ant-.'; msg.hidden = false; return; }
+      save.disabled = true; save.textContent = 'Checking…';
+      try { await apiCall(k, [{role:'user', content:'Reply with OK.'}], [], null); try { localStorage.setItem('anthropic-key', k); } catch {} enableApiSample(k); toast('Claude is ready'); render(); }
+      catch (e) { msg.textContent = e.message || 'Couldn’t reach Claude with that key.'; msg.hidden = false; save.disabled = false; save.textContent = 'Save key'; }
+    };
+    return el('div', {class:'wrap'}, el('div', {class:'askhero'},
+      el('h2', {}, 'Ask Claude — free'),
+      el('p', {class:'muted', style:'margin:0'}, 'Tap below to open your money tracker inside Claude. Ask anything or tell it a change (“GEICO went up to $410”). It’s free with your Claude account, and changes sync back to this app.'),
+      el('button', {class:'primary', style:'min-height:52px;font-size:17px', onclick:openClaudeLink}, 'Open Ask Claude'),
+      el('p', {class:'small muted', style:'margin:0'}, 'It opens on top of this app using Chrome, so you only sign in to Claude once. Tap Back to return — changes sync in automatically.')),
+      el('details', {style:'margin-top:16px'}, el('summary', {class:'small muted'}, 'Optional: chat right inside this app (paid API key)'),
+      el('div', {class:'askhero', style:'margin-top:10px'},
+      el('p', {class:'muted', style:'margin:0'}, 'This uses your own Anthropic API key, billed separately — usually a cent or two per question.'),
+      el('ol', {class:'small', style:'margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px'},
+        el('li', {}, 'On any browser, go to console.anthropic.com and sign in.'),
+        el('li', {}, 'Add a few dollars of credit under Billing.'),
+        el('li', {}, 'Open API Keys, create a key, and copy it.'),
+        el('li', {}, 'Paste it here. It stays on this phone only.')),
+      inp, msg, save)));
+  }
+  const CLAUDE_LINK = 'https://claude.ai/artifact/W4t2vDCk9cxkQoPXpweC6s';
+  function openClaudeLink() { location.href = CLAUDE_LINK; }
+  // free path: the floating Ask button opens the Claude link until a key is saved
+  $('askbtn').hidden = false;
+  $('askbtn').addEventListener('click', ev => { if (typeof sampleFn !== 'function') { ev.stopImmediatePropagation(); openClaudeLink(); } }, true);
+  const MODEL = 'claude-haiku-5-5';
+  async function apiCall(key, messages, tools, signal) {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {method:'POST', signal, headers:{'content-type':'application/json', 'x-api-key':key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({model:MODEL, max_tokens:1500, messages, ...(tools.length ? {tools} : {})})});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { const e = new Error(r.status === 401 ? 'That key didn’t work. Check it and try again.' : r.status === 429 ? 'Too many questions at once. Wait a minute.' : (j.error && j.error.message) || 'Claude couldn’t answer right now.'); e.code = r.status === 429 ? 'rate_limited' : 'upstream_error'; throw e; }
+    return j;
+  }
+  function enableApiSample(key) {
+    sampleFn = async (input, opts = {}) => {
+      const msgs = typeof input === 'string' ? [{role:'user', content:input}] : input.map(t => ({role:t.role, content:t.content}));
+      const tools = (opts.tools || []).map(t => ({name:t.name, description:t.description, input_schema:t.inputSchema || {type:'object', properties:{}}}));
+      let text = '';
+      try {
+        for (let round = 0; round < 6; round++) {
+          const res = await apiCall(key, msgs, tools, opts.signal);
+          const said = res.content.filter(c => c.type === 'text').map(c => c.text).join('');
+          if (said) { text += (text ? '\n\n' : '') + said; opts.onText && opts.onText({text, delta:said}); }
+          const uses = res.content.filter(c => c.type === 'tool_use');
+          if (res.stop_reason !== 'tool_use' || !uses.length) break;
+          msgs.push({role:'assistant', content:res.content});
+          const results = [];
+          for (const u of uses) { const tool = (opts.tools || []).find(t => t.name === u.name);
+            try { const out = await tool.execute(u.input || {}, {signal:opts.signal}); results.push({type:'tool_result', tool_use_id:u.id, content:JSON.stringify(out ?? {ok:true})}); }
+            catch (e) { results.push({type:'tool_result', tool_use_id:u.id, content:'Error: ' + (e.message || e), is_error:true}); } }
+          msgs.push({role:'user', content:results});
+        }
+      } catch (e) { if (e.name === 'AbortError') throw {code:'cancelled', text}; throw {code:e.code || 'upstream_error', message:e.message, text}; }
+      if (!text) throw {code:'empty_completion', text:''};
+      return {text, truncated:false};
+    };
+    $('askbtn').hidden = false;
+  }
+
+  // ---- render ----
+  function render() {
+    renderSummary();
+    const v = $('view'); v.replaceChildren();
+    const allReady = Object.values(S.ready).every(Boolean);
+    if (!S.db) { v.append(el('div', {class:'notice'}, S.dbChecked ? 'Sign in to Claude to see and edit your money. Your data is saved to your account, not this phone.' : 'Loading your bills…')); return; }
+    if (!allReady) { v.append(el('div', {class:'notice'}, 'Loading your bills…')); return; }
+    v.append(({home:viewHome, weeks:viewWeeks, bills:viewBills, ask:viewAsk, money:viewMoney})[S.tab]());
+  }
+  document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => {
+    S.tab = b.dataset.tab;
+    document.querySelectorAll('nav.tabs button').forEach(x => x.toggleAttribute('aria-current', x === b) || x.removeAttribute('aria-current'));
+    b.setAttribute('aria-current', 'page');
+    try { localStorage.setItem('tab', S.tab); } catch {}
+    render(); window.scrollTo(0, 0);
+  }));
+  try { const t = localStorage.getItem('tab'); if (t && ['home','weeks','bills','ask','money'].includes(t)) document.querySelector(`nav.tabs button[data-tab="${t}"]`)?.click(); } catch {}
+
+  function toast(msg) { const t = el('div', {class:'toast', role:'status'}, msg); document.body.append(t); setTimeout(() => t.remove(), 2200); }
+  function failed(e) {
+    if (e && e.code === 'invalid_argument') { S.canWrite = false; render(); toast('You can view this but not change it.'); return; }
+    toast(e && e.code === 'quota_exceeded' ? 'Storage is full. Delete a few old items and try again.' : 'Couldn’t save. Check your connection and try again.');
+  }
+
+  // ---- writes ----
+  async function togglePaid(e, on, box) {
+    const ref = S.db.collection('paid').doc(paidKey(e.id, e.d));
+    try {
+      if (on) await ref.set({bill_id:e.id, bill:e.name, due:iso(e.d), paid_on:iso(T)}); else await ref.delete();
+      toast(on ? '✓ ' + e.name + ' done' : e.name + ' unticked'); if (on) document.querySelector('.status')?.classList.add('celebrate');
+    } catch (err) { box.checked = !on; failed(err); }
+  }
+  const slug = s => (String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'item') + '-' + Math.random().toString(36).slice(2, 7);
+
+  function sheet(title, fields, onSave, onDelete) {
+    const back = el('div', {class:'sheet-back'});
+    const form = el('form', {class:'f', novalidate:true});
+    for (const f of fields) {
+      let input;
+      if (f.options) { input = el('select', {id:f.id, name:f.id}); for (const [v, l] of f.options) { const o = el('option', {value:v}, l); if (String(f.value ?? '') === v) o.selected = true; input.append(o); } }
+      else input = el('input', {id:f.id, name:f.id, type:f.type || 'text', inputmode:f.inputmode, step:f.step, list:f.list, required:f.required, value:f.value ?? '', placeholder:f.placeholder});
+      form.append(el('label', {class:f.full ? 'full' : null, for:f.id}, f.label, input));
+    }
+    const err = el('p', {class:'full small out', style:'margin:0', hidden:true});
+    let confirmDel = false;
+    const del = onDelete ? el('button', {type:'button', class:'danger grow'}, 'Delete') : null;
+    del?.addEventListener('click', async () => {
+      if (!confirmDel) { confirmDel = true; del.textContent = 'Tap again to delete'; return; }
+      try { await onDelete(); back.remove(); } catch (e) { failed(e); }
+    });
+    const save = el('button', {type:'submit', class:'primary'}, 'Save');
+    form.append(err, el('div', {class:'actions full'}, del, el('button', {type:'button', onclick:() => back.remove()}, 'Cancel'), save));
+    form.addEventListener('submit', async ev => {
+      ev.preventDefault();
+      const vals = Object.fromEntries(new FormData(form));
+      const problem = fields.find(f => f.required && !String(vals[f.id] || '').trim());
+      if (problem) { err.textContent = problem.label + ' is needed.'; err.hidden = false; return; }
+      const bad = fields.find(f => f.type === 'number' && vals[f.id] !== '' && isNaN(+vals[f.id]));
+      if (bad) { err.textContent = bad.label + ' must be a number.'; err.hidden = false; return; }
+      save.disabled = true;
+      try { await onSave(vals); back.remove(); } catch (e) { save.disabled = false; failed(e); }
+    });
+    const sh = el('div', {class:'sheet', role:'dialog', 'aria-modal':'true', 'aria-label':title}, el('h2', {}, title), form);
+    back.append(sh); back.addEventListener('click', ev => { if (ev.target === back) back.remove(); });
+    document.body.append(back);
+    form.querySelector('input,select')?.focus();
+  }
+
+  function editBill(b) {
+    const cats = [...new Set(S.bills.map(x => x.category).filter(Boolean))].sort();
+    let dl = $('catlist'); if (!dl) { dl = el('datalist', {id:'catlist'}); document.body.append(dl); }
+    dl.replaceChildren(...cats.map(c => el('option', {value:c})));
+    sheet(b ? 'Edit bill' : 'Add bill', [
+      {id:'name', label:'Name', value:b?.name, required:true, full:true, placeholder:'e.g. Car insurance'},
+      {id:'amount', label:'Amount ($)', type:'number', inputmode:'decimal', step:'0.01', value:b?.amount, required:true},
+      {id:'category', label:'Category', value:b?.category, list:'catlist', placeholder:'e.g. Loans'},
+      {id:'frequency', label:'How often', value:b?.frequency || 'monthly', options:[['monthly','Monthly'],['weekly','Weekly']]},
+      {id:'due_day', label:'Day of month', type:'number', inputmode:'numeric', step:'1', value:b?.due_day, placeholder:'1–31'},
+      {id:'autopay', label:'Autopay', value:b?.autopay || 'Unknown', options:[['Yes','Yes'],['No','No'],['Unknown','Not sure']]},
+      {id:'first_due', label:'First payment (optional)', type:'date', value:b?.first_due},
+      {id:'last_due', label:'Last payment (optional)', type:'date', value:b?.last_due, full:true},
+    ], async v => {
+      if (v.frequency === 'monthly' && !(+v.due_day >= 1 && +v.due_day <= 31)) throw {code:'local', message:''};
+      if (v.frequency === 'weekly' && !v.first_due) v.first_due = iso(T);
+      const body = {name:v.name.trim(), amount:+(+v.amount).toFixed(2), category:v.category.trim() || 'Other', frequency:v.frequency, due_day: v.frequency === 'monthly' ? +v.due_day : null, autopay:v.autopay, first_due:v.first_due || '', last_due:v.last_due || ''};
+      await S.db.collection('bills').doc(b ? b.id : slug(body.name)).set(body);
+      toast(b ? 'Saved' : 'Bill added');
+    }, b ? async () => { await S.db.collection('bills').doc(b.id).delete(); toast('Bill deleted'); } : null);
+  }
+  function editBalance() {
+    sheet('Checking balance', [
+      {id:'balance', label:'Balance today ($)', type:'number', inputmode:'decimal', step:'0.01', value:S.settings?.balance ?? '', required:true, full:true},
+    ], async v => { await S.db.collection('settings').doc('main').set({...(S.settings || {}), balance:+(+v.balance).toFixed(2), as_of:iso(T)}); toast('Balance saved'); });
+  }
+  function editIncome(i) {
+    sheet(i ? 'Edit paycheck' : 'Add paycheck', [
+      {id:'source', label:'From', value:i?.source, required:true, full:true, placeholder:'e.g. P.C. Richard payroll'},
+      {id:'amount', label:'Amount ($)', type:'number', inputmode:'decimal', step:'0.01', value:i?.amount, required:true},
+      {id:'frequency', label:'How often', value:i?.frequency || 'biweekly', options:[['weekly','Every week'],['biweekly','Every other week'],['monthly','Monthly']]},
+      {id:'anchor_date', label:'A recent payday', type:'date', value:i?.anchor_date, required:true, full:true},
+    ], async v => {
+      await S.db.collection('income').doc(i ? i.id : slug(v.source)).set({source:v.source.trim(), amount:+(+v.amount).toFixed(2), frequency:v.frequency, anchor_date:v.anchor_date});
+      toast('Saved');
+    }, i ? async () => { await S.db.collection('income').doc(i.id).delete(); toast('Paycheck removed'); } : null);
+  }
+  function editOwed(o) {
+    sheet(o ? o.name : 'Add balance owed', [
+      ...(o ? [] : [{id:'name', label:'Name', required:true, full:true, placeholder:'e.g. PSEG electric'}]),
+      {id:'balance', label:'Balance ($)', type:'number', inputmode:'decimal', step:'0.01', value:o?.balance, required:true},
+      ...(o ? [{id:'payment', label:'Payment made ($)', type:'number', inputmode:'decimal', step:'0.01', placeholder:'Takes it off the balance'}] : []),
+      {id:'note', label:'Note', value:o?.note, full:true},
+    ], async v => {
+      const bal = +(+v.balance - (+v.payment || 0)).toFixed(2);
+      const note = v.payment && +v.payment ? 'Paid ' + money.format(+v.payment) + ' on ' + fmtShort(T) : v.note.trim();
+      await S.db.collection('owed').doc(o ? o.id : slug(v.name)).set({name: o ? o.name : v.name.trim(), balance:bal, note});
+      toast(v.payment && +v.payment ? 'Payment recorded' : 'Saved');
+    }, o ? async () => { await S.db.collection('owed').doc(o.id).delete(); toast('Removed'); } : null);
+  }
+
+  // ---- Ask Claude ----
+  let sampleFn = null, chatTurns = [];
+  function stateForClaude() {
+    const bills = S.bills.map(b => ({id:b.id, name:b.name, amount:+b.amount, category:b.category, frequency:b.frequency || 'monthly', due_day:b.due_day ?? null, autopay:b.autopay, first_due:b.first_due || '', last_due:b.last_due || ''}));
+    const upcoming = events(T - 7 * DAY, T + 21 * DAY).filter(e => e.type === 'bill').map(e => ({bill_id:e.id, name:e.name, due:iso(e.d), amount:e.amount, paid:e.paid}));
+    return JSON.stringify({today:iso(T), bills, paychecks:S.income.map(i => ({id:i.id, source:i.source, amount:+i.amount, frequency:i.frequency, anchor_date:i.anchor_date})), owed:S.owed.map(o => ({id:o.id, name:o.name, balance:+o.balance, note:o.note || ''})), payments_due_last_week_to_3_weeks_out:upcoming});
+  }
+  const RULES = `You are the assistant inside Wilson's personal money tracker app. You change his bills, paychecks, paid ticks and owed balances using the tools. Rules:
+- Only change what he asks. If his request is ambiguous (which of two similar bills, what amount), ask one short question instead of guessing.
+- Match existing items by name; reuse their id when updating so nothing gets duplicated. Create a new item only when nothing matches.
+- Monthly bills need due_day (1-31). Weekly bills need first_due (YYYY-MM-DD). Use last_due for a final payment, first_due for a loan that starts later.
+- Dates are YYYY-MM-DD. Money is plain numbers in dollars.
+- After making changes, reply in one or two short plain sentences saying exactly what changed. No markdown.
+- You can also answer questions about his money from the data, briefly and plainly.`;
+  const undoLog = [];
+  const snapshotOf = (coll, id) => { const src = {bills:S.bills, income:S.income, owed:S.owed}[coll]; const cur = src?.find(x => x.id === id); if (!cur) return null; const {id:_, ...body} = cur; return body; };
+  async function writeDoc(coll, id, body, label) {
+    const prev = coll === 'paid' ? (S.paid.has(id) ? 'exists' : null) : snapshotOf(coll, id);
+    if (body === null) await S.db.collection(coll).doc(id).delete(); else await S.db.collection(coll).doc(id).set(body);
+    undoLog.push({coll, id, prev}); logLine(label);
+  }
+  const num = v => { const n = Number(v); if (!isFinite(n)) throw new Error('amount must be a number'); return +n.toFixed(2); };
+  const dateOk = v => !v || /^\d{4}-\d{2}-\d{2}$/.test(String(v));
+  const TOOLS = [
+    {name:'save_bill', description:'Create or update a bill. Pass id of an existing bill to update it (all fields are replaced, so include the ones that stay the same); omit id to create. Returns the id.',
+      inputSchema:{type:'object', properties:{id:{type:'string'}, name:{type:'string'}, amount:{type:'number'}, category:{type:'string'}, frequency:{type:'string', enum:['monthly','weekly']}, due_day:{type:'integer'}, autopay:{type:'string', enum:['Yes','No','Unknown']}, first_due:{type:'string'}, last_due:{type:'string'}}, required:['name','amount','frequency']},
+      execute: async i => {
+        const freq = i.frequency === 'weekly' ? 'weekly' : 'monthly';
+        if (freq === 'monthly' && !(+i.due_day >= 1 && +i.due_day <= 31)) throw new Error('monthly bills need due_day 1-31');
+        if (!dateOk(i.first_due) || !dateOk(i.last_due)) throw new Error('dates must be YYYY-MM-DD');
+        const id = i.id && S.bills.some(b => b.id === String(i.id)) ? String(i.id) : slug(i.name);
+        const body = {name:String(i.name).trim(), amount:num(i.amount), category:String(i.category || 'Other'), frequency:freq, due_day: freq === 'monthly' ? +i.due_day : null, autopay:['Yes','No'].includes(i.autopay) ? i.autopay : 'Unknown', first_due: i.first_due || (freq === 'weekly' ? iso(T) : ''), last_due:i.last_due || ''};
+        await writeDoc('bills', id, body, (i.id ? 'Updated ' : 'Added ') + body.name + ' · ' + money.format(body.amount));
+        return {ok:true, id};
+      }},
+    {name:'delete_bill', description:'Remove a bill by id. Only when he clearly asks to remove it.', inputSchema:{type:'object', properties:{id:{type:'string'}}, required:['id']},
+      execute: async i => { const b = S.bills.find(x => x.id === String(i.id)); if (!b) throw new Error('no bill with that id'); await writeDoc('bills', b.id, null, 'Removed ' + b.name); return {ok:true}; }},
+    {name:'set_paid', description:'Tick or untick one payment of a bill as paid. due is the payment date (YYYY-MM-DD) from payments_due list.', inputSchema:{type:'object', properties:{bill_id:{type:'string'}, due:{type:'string'}, paid:{type:'boolean'}}, required:['bill_id','due','paid']},
+      execute: async i => { const b = S.bills.find(x => x.id === String(i.bill_id)); if (!b) throw new Error('no bill with that id'); if (!dateOk(i.due) || !i.due) throw new Error('due must be YYYY-MM-DD');
+        const key = b.id + '__' + i.due; await writeDoc('paid', key, i.paid ? {bill_id:b.id, bill:b.name, due:i.due, paid_on:iso(T)} : null, (i.paid ? 'Marked paid: ' : 'Unmarked: ') + b.name + ' (' + fmtShort(parse(i.due)) + ')'); return {ok:true}; }},
+    {name:'save_paycheck', description:'Create or update a paycheck. frequency weekly, biweekly or monthly; anchor_date is any real payday (YYYY-MM-DD). Pass id to update.', inputSchema:{type:'object', properties:{id:{type:'string'}, source:{type:'string'}, amount:{type:'number'}, frequency:{type:'string', enum:['weekly','biweekly','monthly']}, anchor_date:{type:'string'}}, required:['source','amount','frequency','anchor_date']},
+      execute: async i => { if (!dateOk(i.anchor_date)) throw new Error('anchor_date must be YYYY-MM-DD'); const id = i.id && S.income.some(x => x.id === String(i.id)) ? String(i.id) : slug(i.source);
+        await writeDoc('income', id, {source:String(i.source).trim(), amount:num(i.amount), frequency:['weekly','biweekly','monthly'].includes(i.frequency) ? i.frequency : 'biweekly', anchor_date:String(i.anchor_date)}, 'Saved paycheck ' + i.source); return {ok:true, id}; }},
+    {name:'save_owed', description:'Create or update a balance owed with no set payment (like PSEG). Pass id to update; to record a payment, pass the new lower balance and a note.', inputSchema:{type:'object', properties:{id:{type:'string'}, name:{type:'string'}, balance:{type:'number'}, note:{type:'string'}}, required:['name','balance']},
+      execute: async i => { const id = i.id && S.owed.some(x => x.id === String(i.id)) ? String(i.id) : slug(i.name);
+        await writeDoc('owed', id, {name:String(i.name).trim(), balance:num(i.balance), note:String(i.note || '')}, 'Updated ' + i.name + ' balance · ' + money.format(num(i.balance))); return {ok:true, id}; }},
+  ];
+  let chatBox = null, logLine = () => {};
+  function openAsk(prefill) {
+    const back = el('div', {class:'sheet-back'});
+    const chat = el('div', {class:'chat', 'aria-live':'polite'});
+    if (!chatTurns.length) chat.append(el('div', {class:'msg ai'}, 'Tell me what changed and I’ll update the tracker. For example: “GEICO went up to $410”, “I paid AT&T”, or “add Netflix $17.99 on the 12th”.'));
+    for (const t of chatTurns) chat.append(el('div', {class:'msg ' + (t.role === 'user' ? 'me' : 'ai')}, t.content));
+    const ta = el('textarea', {id:'askinput', placeholder:'What should I change?', 'aria-label':'Message for Claude'});
+    const send = el('button', {class:'primary', type:'submit'}, 'Send');
+    const stop = el('button', {type:'button', hidden:true}, 'Stop');
+    const undo = el('button', {type:'button', class:'danger grow', hidden:true}, 'Undo last changes');
+    const close = el('button', {type:'button'}, 'Close');
+    let ctl = null, lastBatch = [];
+    close.onclick = () => { ctl?.abort(); back.remove(); };
+    stop.onclick = () => ctl?.abort();
+    undo.onclick = async () => {
+      undo.disabled = true;
+      try {
+        for (const u of lastBatch.slice().reverse()) {
+          const ref = S.db.collection(u.coll).doc(u.id);
+          if (u.coll === 'paid') { if (u.prev) await ref.set({bill_id:u.id.split('__')[0], due:u.id.split('__')[1], paid_on:iso(T)}); else await ref.delete(); }
+          else if (u.prev) await ref.set(u.prev); else await ref.delete();
+        }
+        chat.append(el('div', {class:'msg log'}, '↩ Undid ' + lastBatch.length + ' change' + (lastBatch.length === 1 ? '' : 's')));
+        lastBatch = []; undo.hidden = true;
+      } catch (e) { failed(e); }
+      undo.disabled = false; chat.scrollTop = chat.scrollHeight;
+    };
+    const form = el('form', {class:'f'}, el('label', {class:'full', for:'askinput'}, 'Message', ta), el('div', {class:'actions full'}, undo, close, stop, send));
+    ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+    form.addEventListener('submit', async ev => {
+      ev.preventDefault();
+      const text = ta.value.trim(); if (!text || ctl) return;
+      ta.value = '';
+      chatTurns.push({role:'user', content:text}); chat.append(el('div', {class:'msg me'}, text));
+      const out = el('div', {class:'msg ai'}, 'Thinking…'); chat.append(out); chat.scrollTop = chat.scrollHeight;
+      const start = undoLog.length;
+      logLine = label => { chat.insertBefore(el('div', {class:'msg log'}, '✓ ' + label), out); chat.scrollTop = chat.scrollHeight; };
+      ctl = new AbortController(); send.disabled = true; stop.hidden = false;
+      const turns = [{role:'user', content: RULES + '\n\nCurrent data:\n' + stateForClaude()}, ...chatTurns.slice(-12)];
+      try {
+        const {text: reply} = await sampleFn(turns, {tools:TOOLS, modelTier:'quick', signal:ctl.signal, onText:({text}) => { out.textContent = text; chat.scrollTop = chat.scrollHeight; }});
+        out.textContent = reply; chatTurns.push({role:'assistant', content:reply});
+      } catch (e) {
+        const msgs = {not_granted:'Claude isn’t allowed on this page. You can allow it from the page’s permissions.', sampling_disabled:'Claude isn’t available on this account.', tools_unavailable:'This view can’t make changes through Claude. Try the Claude app or claude.ai.', rate_limited:'You’ve hit your usage limit for now. Try again in a little while.', session_expired:'Sign in to Claude again, then retry.', refused:'Claude couldn’t do that one. Try rewording it.'};
+        out.textContent = e.code === 'cancelled' ? (e.text || 'Stopped.') : (e.text ? e.text + '\n\n' : '') + (msgs[e.code] || 'Something went wrong. Try again.');
+        if (['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(e.code)) $('askbtn').hidden = true;
+      }
+      lastBatch = undoLog.slice(start); undo.hidden = !lastBatch.length;
+      ctl = null; send.disabled = false; stop.hidden = true; logLine = () => {}; chat.scrollTop = chat.scrollHeight;
+    });
+    back.append(el('div', {class:'sheet', role:'dialog', 'aria-modal':'true', 'aria-label':'Ask Claude'}, el('h2', {}, 'Ask Claude'), el('p', {class:'small muted', style:'margin:0'}, 'Changes save to your tracker right away. Undo is there if something’s off.'), chat, form));
+    back.addEventListener('click', ev => { if (ev.target === back) close.onclick(); });
+    document.body.append(back); ta.focus();
+    if (prefill) { ta.value = prefill; form.requestSubmit(); }
+  }
+  $('askbtn').addEventListener('click', () => openAsk(''));
+
+  // ---- sync (Supabase: one copy shared by the phone app, this page and the twice-daily check) ----
+  const SB = {url:'https://ynyfuhcombwofvcufvfp.supabase.co', project:'ynyfuhcombwofvcufvfp',
+    key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlueWZ1aGNvbWJ3b2Z2Y3VmdmZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NzQ4MzgsImV4cCI6MjEwODM1MDgzOH0.2nzJtlVfIxqQp2gRzjoj-659Kv7Sf-2k_R8an0oMd7E'};
+  const COLLS = ['bills','income','owed','paid','settings'];
+  const NATIVE = (() => { try { return window.WMNative || null; } catch { return null; } })();
+  const ls = {
+    get(k) { try { const t = localStorage.getItem(k); if (t !== null) return JSON.parse(t); } catch {} try { const t = NATIVE && NATIVE.get(k); if (t) return JSON.parse(t); } catch {} return null; },
+    set(k, v) { const t = JSON.stringify(v); try { localStorage.setItem(k, t); } catch {} try { NATIVE && NATIVE.set(k, v === null ? null : t); } catch {} },
+  };
+  const stable = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, kk) => (o[kk] = x[kk], o), {}) : x);
+  const SYNC = {
+    t: null, base: null, cache: {}, loaded: new Set(), outbox: ls.get('sync-outbox') || {}, state: 'off', note: '', last: ls.get('sync-last'), busy: false, extra: null, timer: null,
+    wrap(base) {
+      this.base = base;
+      for (const c of COLLS) { this.cache[c] = {}; base.collection(c).onSnapshot(snap => { const m = {}; snap.docs.forEach(d => { if (d.exists) m[d.id] = d.data(); }); this.cache[c] = m; this.loaded.add(c); }, () => this.loaded.add(c)); }
+      const self = this;
+      return { collection(name) { const col = base.collection(name); return {
+        doc(id) { const d = col.doc(id); return {
+          async set(body) { await d.set(body); self.queue(name, id, JSON.parse(JSON.stringify(body))); },
+          async delete() { await d.delete(); self.queue(name, id, null); } }; },
+        onSnapshot: (...a) => col.onSnapshot(...a) }; } };
+    },
+    queue(c, i, d) { this.outbox[c + '/' + i] = {c, i, d}; ls.set('sync-outbox', this.outbox); if (this.t) setTimeout(() => this.now(), 300); },
+    async flush() {
+      const ops = Object.entries(this.outbox); if (!ops.length) return;
+      await this.t.push(ops.map(([, o]) => o));
+      for (const [k, o] of ops) if (this.outbox[k] === o) delete this.outbox[k];
+      ls.set('sync-outbox', this.outbox);
+    },
+    async pull() {
+      const rows = await this.t.pull(); const seen = {};
+      if (!rows.length && COLLS.some(c => Object.keys(this.cache[c]).length)) throw new Error('not_allowed');
+      for (const r of rows) {
+        if (!COLLS.includes(r.c)) continue;
+        const k = r.c + '/' + r.i; seen[k] = 1; if (this.outbox[k]) continue;
+        const local = this.cache[r.c][r.i], ref = this.base.collection(r.c).doc(r.i);
+        if (r.x) { if (local !== undefined) await ref.delete(); }
+        else if (local === undefined || stable(local) !== stable(r.d)) await ref.set(r.d);
+      }
+      for (const c of COLLS) for (const i of Object.keys(this.cache[c])) if (!seen[c + '/' + i] && !this.outbox[c + '/' + i]) await this.base.collection(c).doc(i).delete();
+    },
+    async now() {
+      if (!this.t || this.busy) return; this.busy = true; this.set('syncing');
+      for (let n = 0; n < 50 && this.loaded.size < COLLS.length; n++) await new Promise(r => setTimeout(r, 100));
+      try { await this.flush(); await this.pull(); this.last = Date.now(); ls.set('sync-last', this.last); this.set('ok', ''); }
+      catch (e) { this.set('error', e && (e.code || e.message) || 'error'); }
+      this.busy = false;
+    },
+    start(t) {
+      this.t = t; this.now();
+      clearInterval(this.timer); this.timer = setInterval(() => { if (!document.hidden) this.now(); }, 120000);
+      if (!this.vis) { this.vis = true; document.addEventListener('visibilitychange', () => { if (!document.hidden) this.now(); }); }
+    },
+    stop(state, note) { this.t = null; clearInterval(this.timer); this.set(state || 'off', note || ''); },
+    set(state, note) {
+      const was = this.state + this.note; this.state = state; if (note !== undefined) this.note = note;
+      if (was !== this.state + this.note && S.tab === 'money' && !document.querySelector('.sheet-back') && !(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName))) render();
+    },
+  };
+  function ago(t) { if (!t) return 'never'; const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' hr ago' : Math.round(m / 1440) + ' days ago'; }
+  function syncSection() {
+    const pending = Object.keys(SYNC.outbox).length;
+    const line = SYNC.state === 'ok' ? '✓ Up to date with your phone app and the twice-daily check · ' + ago(SYNC.last)
+      : SYNC.state === 'syncing' ? 'Syncing…'
+      : SYNC.state === 'error' ? (SYNC.note === 'signed_out' ? 'Signed out — sign in below to keep syncing.' : SYNC.note === 'not_allowed' ? 'That account can’t open this data. Sign in with your own email.' : SYNC.note === 'offline' ? 'No internet. Your changes are kept and will go up when you’re back online.' : 'Couldn’t sync just now. Your changes are kept and will go up next time.')
+      : SYNC.state === 'blocked' ? SYNC.note
+      : 'Not syncing yet.';
+    return el('section', {}, el('div', {class:'sechead'}, el('h2', {}, 'Sync'), SYNC.t ? el('button', {onclick:() => SYNC.now()}, 'Sync now') : null),
+      el('div', {class:'notice' + (SYNC.state === 'error' ? ' warn' : '')}, line, pending && SYNC.state !== 'ok' ? el('div', {class:'small muted'}, pending + ' change' + (pending === 1 ? '' : 's') + ' waiting to upload') : null),
+      SYNC.extra ? SYNC.extra() : null);
+  }
+  function mcpTransport(mcp) {
+    const run = async query => {
+      const r = await mcp.callTool('Supabase', 'execute_sql', {project_id: SB.project, query}, {cache:false});
+      let p = r.payload; if (Array.isArray(p)) return p;
+      if (p && typeof p === 'object') p = p.result ?? JSON.stringify(p);
+      if (typeof p !== 'string') p = (r.content || []).map(c => c.text || '').join('');
+      const m = p.match(/<untrusted-data-[^>]*>\s*([\s\S]*?)\s*<\/untrusted-data/);
+      return JSON.parse(m ? m[1] : p);
+    };
+    const q = v => { const t = '$m' + Math.random().toString(36).slice(2, 8) + '$'; if (v.includes(t)) throw new Error('quote'); return t + v + t; };
+    return {
+      async pull() { const rows = await run("select coalesce(json_agg(json_build_object('c',collection,'i',id,'d',data,'x',deleted)),'[]'::json) as j from public.docs"); const j = rows[0] && rows[0].j; return typeof j === 'string' ? JSON.parse(j) : (j || []); },
+      async push(ops) {
+        const vals = ops.filter(o => COLLS.includes(o.c)).map(o => `(${q(o.c)}, ${q(String(o.i))}, ${q(JSON.stringify(o.d ?? {}))}::jsonb, ${o.d === null})`);
+        if (vals.length) await run(`insert into public.docs (collection, id, data, deleted) values ${vals.join(', ')} on conflict (collection, id) do update set data = excluded.data, deleted = excluded.deleted; select 1 as ok`);
+      },
+    };
+  }
+
+
+  // ---- on-device store (same calls as the online version) ----
+  const SEED = {bills:{}, income:{}, owed:{}, paid:{}, settings:{}};
+  const KEY = 'wilsons-money-v1';
+  function loadAll() {
+    let st = null; try { const t = localStorage.getItem(KEY) || (window.WMNative && window.WMNative.get(KEY)); if (t) st = JSON.parse(t); } catch {}
+    if (!st) { st = JSON.parse(JSON.stringify(SEED)); st._v = 4; return st; }
+    if ((st._v || 1) < 3) {
+      for (const [id, b] of Object.entries(SEED.bills || {})) if (st.bills && st.bills[id] && !st.bills[id].last_due && b.last_due) st.bills[id].last_due = b.last_due;
+      st.paid ||= {}; for (const [id, p] of Object.entries(SEED.paid || {})) if (!st.paid[id]) st.paid[id] = p;
+      st._v = 3; try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {}
+    }
+    if (st._v < 4) {
+      const n = st.income && st.income['nyu-grossman-payroll'];
+      if (n && +n.amount === 1260.72) Object.assign(n, SEED.income['nyu-grossman-payroll']);
+      st._v = 4; try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {}
+    }
+    return st;
+  }
+  let STORE = loadAll();
+  const listeners = {};
+  function persist() { const t = JSON.stringify(STORE); let ok = false; try { localStorage.setItem(KEY, t); ok = true; } catch {} try { if (window.WMNative) { window.WMNative.set(KEY, t); ok = true; } } catch {} if (!ok) toast('Couldn’t save on this phone.'); }
+  const docsOf = name => Object.entries(STORE[name] || {}).map(([id, d]) => ({id, exists:true, data:() => d}));
+  function emit(name) { (listeners[name] || []).forEach(fn => fn({docs:docsOf(name)})); }
+  const localDB = {
+    collection(name) {
+      return {
+        doc(id) { return {
+          async set(body) { (STORE[name] ||= {})[id] = JSON.parse(JSON.stringify(body)); persist(); emit(name); },
+          async delete() { if (STORE[name]) delete STORE[name][id]; persist(); emit(name); },
+        }; },
+        onSnapshot(fn) { (listeners[name] ||= []).push(fn); setTimeout(() => fn({docs:docsOf(name)}), 0); return () => {}; },
+      };
+    },
+  };
+  function backupText() { return JSON.stringify(STORE); }
+  function restoreFrom(text) {
+    const d = JSON.parse(text);
+    if (!d || typeof d !== 'object' || !d.bills) throw new Error('bad');
+    STORE = d; persist(); ['bills','income','owed','paid','settings'].forEach(emit);
+    for (const c of COLLS) for (const [i, v] of Object.entries(STORE[c] || {})) SYNC.queue(c, i, v);
+  }
+
+  // ---- Supabase sign-in + REST sync (phone app) ----
+  const AUTH = { s: ls.get('sb-session') };
+  function saveSession(j) { AUTH.s = {access_token:j.access_token, refresh_token:j.refresh_token, expires_at:j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600), email:(j.user && j.user.email) || (AUTH.s && AUTH.s.email) || ''}; ls.set('sb-session', AUTH.s); }
+  function signedOut() { AUTH.s = null; ls.set('sb-session', null); SYNC.stop('error', 'signed_out'); }
+  async function authPost(path, body) {
+    const r = await fetch(SB.url + path, {method:'POST', headers:{apikey:SB.key, 'content-type':'application/json'}, body:JSON.stringify(body)});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { const e = new Error(j.msg || j.error_description || j.message || ('Error ' + r.status)); e.status = r.status; e.code = j.error_code || j.code; throw e; }
+    return j;
+  }
+  async function refreshSession() {
+    try { saveSession(await authPost('/auth/v1/token?grant_type=refresh_token', {refresh_token:AUTH.s.refresh_token})); }
+    catch (e) { if (e.status === 400 || e.status === 401) signedOut(); throw new Error(e.status ? 'signed_out' : 'offline'); }
+  }
+  async function api(path, opts = {}, again = true) {
+    if (!AUTH.s) throw new Error('signed_out');
+    if (AUTH.s.expires_at * 1000 < Date.now() + 60000) await refreshSession();
+    let r;
+    try { r = await fetch(SB.url + path, {...opts, headers:{apikey:SB.key, Authorization:'Bearer ' + AUTH.s.access_token, 'content-type':'application/json', ...(opts.headers || {})}}); }
+    catch { throw new Error('offline'); }
+    if (r.status === 401 && again) { await refreshSession(); return api(path, opts, false); }
+    if (r.status === 403) throw new Error('not_allowed');
+    if (!r.ok) throw new Error('Error ' + r.status);
+    return r;
+  }
+  const restTransport = {
+    async pull() { return (await api('/rest/v1/docs?select=c:collection,i:id,d:data,x:deleted')).json(); },
+    async push(ops) { await api('/rest/v1/docs?on_conflict=collection,id', {method:'POST', headers:{Prefer:'resolution=merge-duplicates,return=minimal'}, body:JSON.stringify(ops.map(o => ({collection:o.c, id:String(o.i), data:o.d ?? {}, deleted:o.d === null})))}); },
+  };
+  function restStart() { if (AUTH.s) SYNC.start(restTransport); else SYNC.set('off', ''); }
+  window.__wmResume = () => { if (AUTH.s) SYNC.now(); };
+  SYNC.extra = () => {
+    if (AUTH.s) return el('div', {class:'actions', style:'justify-content:space-between;align-items:center'},
+      el('span', {class:'small muted'}, 'Signed in as ' + (AUTH.s.email || 'you')),
+      el('button', {onclick:() => { signedOut(); SYNC.set('off', ''); render(); }}, 'Sign out'));
+    const email = el('input', {type:'email', autocomplete:'email', placeholder:'Email', 'aria-label':'Email'});
+    const pass = el('input', {type:'password', autocomplete:'current-password', placeholder:'Password (8+ characters)', 'aria-label':'Password'});
+    const msg = el('p', {class:'small', style:'margin:0', hidden:true});
+    const say = (t, bad) => { msg.textContent = t; msg.className = 'small ' + (bad ? 'out' : 'muted'); msg.hidden = false; };
+    const go = async create => {
+      const e = email.value.trim(), p = pass.value;
+      if (!e || p.length < 8) { say('Enter your email and a password of at least 8 characters.', true); return; }
+      inBtn.disabled = upBtn.disabled = true;
+      try {
+        const j = await authPost(create ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password', {email:e, password:p});
+        if (j.access_token) { saveSession(j); toast('Signed in. Syncing…'); render(); SYNC.start(restTransport); return; }
+        say('Almost done: open the email from Supabase and tap the confirm link. The page it opens may show an error — that’s fine. Then come back here and tap Sign in.', false);
+      } catch (err) {
+        say(/confirm/i.test(err.message) ? 'Your email isn’t confirmed yet. Tap the link in the Supabase email first, then Sign in.'
+          : /invalid login/i.test(err.message) ? 'Wrong email or password. First time here? Tap Create account.'
+          : /already registered|already exists/i.test(err.message) ? 'You already have an account. Tap Sign in.'
+          : err.status ? err.message : 'No internet right now. Try again in a bit.', true);
+      }
+      inBtn.disabled = upBtn.disabled = false;
+    };
+    const inBtn = el('button', {class:'primary', onclick:() => go(false)}, 'Sign in');
+    const upBtn = el('button', {onclick:() => go(true)}, 'Create account');
+    return el('div', {class:'panel', style:'padding:14px;display:flex;flex-direction:column;gap:10px'},
+      el('div', {class:'name'}, 'Sign in to sync'),
+      el('p', {class:'small muted', style:'margin:0'}, 'Keeps this app, your Claude link and the twice-daily email check on the same numbers. First time: tap Create account, confirm the email, then Sign in.'),
+      email, pass, msg, el('div', {class:'actions', style:'justify-content:flex-start'}, inBtn, upBtn));
+  };
+
+  // ---- data ----
+  render();
+  (async () => {
+    const db = localDB;
+    S.dbChecked = true;
+    S.db = SYNC.wrap(db);
+    try { const k = localStorage.getItem('anthropic-key'); if (k) enableApiSample(k); } catch {}
+    restStart();
+    const sub = (name, fn) => db.collection(name).onSnapshot(snap => { fn(snap.docs.filter(d => d.exists).map(d => ({id:d.id, ...d.data()}))); S.ready[name] = true; render(); },
+      e => { S.ready[name] = true; render(); toast('Lost connection to your data. Reopen the page to refresh.'); });
+    sub('bills', rows => S.bills = rows);
+    sub('income', rows => S.income = rows);
+    sub('owed', rows => S.owed = rows);
+    sub('paid', rows => S.paid = new Set(rows.map(r => r.id)));
+    sub('settings', rows => { const m = rows.find(r => r.id === 'main'); S.settings = m ? {balance:m.balance, as_of:m.as_of} : {}; });
+    render();
+  })();
+})();
+</script>
+</body></html>
