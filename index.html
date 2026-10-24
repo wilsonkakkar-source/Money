@@ -83,7 +83,7 @@ details.wk.now{border-color:var(--accent)}
 
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
   padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));
-  display:grid;grid-template-columns:repeat(5,1fr)}
+  display:grid;grid-template-columns:repeat(6,1fr)}
 nav.tabs button{border:0;background:none;padding:8px 4px;font-size:.78rem;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
 nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
 nav.tabs button[aria-current="page"]{color:var(--accent)}
@@ -176,6 +176,26 @@ details.more .panel{border:0;border-radius:0}
 .catrow .bar i{background:var(--accent)}
 .kv{display:flex;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}
 .kv:first-child{border-top:0}
+
+.planhero{border-radius:16px;padding:16px;background:linear-gradient(160deg,#1a7fd0,#0b3a6e);color:#fff;display:flex;flex-direction:column;gap:6px}
+.planhero .big{font-family:var(--display);font-size:1.3rem;font-weight:700;line-height:1.2}
+.planhero .sub{color:#d6e6f6;font-size:.9rem}
+.step{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;padding:14px 16px;border-top:1px solid var(--line);align-items:start}
+.step:first-child{border-top:0}
+.step .n{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700}
+.step .t{font-weight:600}
+.step .d{color:var(--muted);font-size:.86rem}
+.mv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding:14px 16px;border-top:1px solid var(--line);align-items:center}
+.mv:first-child{border-top:0}
+.mv .from{text-decoration:line-through;color:var(--muted)}
+.mv .to{font-weight:700;color:var(--accent)}
+.mv button{grid-column:1/-1;justify-self:start;font-size:.85rem;padding:7px 12px}
+.pw{display:grid;grid-template-columns:minmax(0,1.2fr) repeat(3,minmax(0,1fr));gap:6px;padding:12px 14px;border-top:1px solid var(--line);align-items:baseline}
+.pw:first-child{border-top:0}
+.pw .k{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;display:block}
+.pw .note{grid-column:1/-1;font-size:.78rem;color:var(--muted)}
+@media (max-width:430px){.pw{grid-template-columns:repeat(3,minmax(0,1fr))}.pw .wl{grid-column:1/-1;font-weight:600}}
+nav.tabs button{font-size:.72rem}
 @media (prefers-reduced-motion:no-preference){.toast{animation:pop .2s ease-out}@keyframes pop{from{opacity:0;transform:translate(-50%,6px)}}}
 </style>
 
@@ -199,6 +219,7 @@ details.more .panel{border:0;border-radius:0}
   <button data-tab="weeks"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Weeks</button>
   <button data-tab="bills"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Bills</button>
   <button data-tab="ask"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8.5 9.5h7M8.5 12.5h4"/></svg>Ask</button>
+  <button data-tab="plan"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="M9 14.5l2 2 4-4"/></svg>Plan</button>
   <button data-tab="money"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Pay &amp; owed</button>
 </nav>
 
@@ -523,6 +544,101 @@ details.more .panel{border:0;border-radius:0}
     }, 400);
   }
 
+  // ---- plan: due dates + weekly set-aside so no week goes below zero ----
+  const FIXED = b => /housing|buy now|affirm|klarna/i.test((b.category || '') + ' ' + b.name);
+  const isHousing = b => /housing/i.test(b.category || '');
+  function planCalc(ov, N = 9) {
+    const mortMo = S.bills.filter(b => active(b) && isHousing(b)).reduce((t, b) => t + perMonth(b.amount, b.frequency), 0);
+    // save for the mortgage out of one paycheck: the one already split to savings, else the biggest
+    const src = S.income.find(i => /savings/i.test(i.note || '')) || S.income.slice().sort((p, q) => perMonth(q.amount, q.frequency) - perMonth(p.amount, p.frequency))[0];
+    const perYear = src ? ({weekly:52, biweekly:26, monthly:12})[src.frequency] || 26 : 52;
+    const split = src && /\$([\d,.]+)\s*to savings/i.exec(src.note || '');
+    const aside = split ? +split[1].replace(/,/g, '') : Math.ceil(mortMo * 12 / perYear / 10) * 10;
+    const bills = S.bills.map(b => ov[b.id] ? {...b, due_day: ov[b.id]} : b);
+    const weeks = [];
+    let fund = 0;
+    for (let i = 0; i < N; i++) {
+      const a = weekStart + i * 7 * DAY, z = a + 7 * DAY;
+      const pays = []; for (const inc of S.income) for (const d of payDates(inc, a, z)) pays.push({d, amount:+inc.amount, name:inc.source});
+      const list = []; for (const b of bills) for (const d of billDates(b, a, z)) list.push({b, d, amount:+b.amount});
+      const inn = pays.reduce((t, p) => t + p.amount, 0);
+      const mort = list.filter(x => isHousing(x.b)).reduce((t, x) => t + x.amount, 0);
+      const out = list.filter(x => !isHousing(x.b)).reduce((t, x) => t + x.amount, 0);
+      const save = src ? payDates(src, a, z).length * aside : aside;
+      fund += save - mort;
+      weeks.push({a, pays, list, inn, out, mort, aside: save, net: inn - save - out, fund});
+    }
+    return {weeks, aside, mortMo, src};
+  }
+  function planMoves() {
+    const ov = {}, moves = [];
+    const score = r => r.weeks.slice(1).reduce((t, w) => t + Math.min(0, w.net), 0);
+    let cur = planCalc(ov);
+    for (let it = 0; it < 25; it++) {
+      const bad = cur.weeks.slice(1).filter(w => w.net < 0).sort((p, q) => p.net - q.net)[0];
+      if (!bad) break;
+      let best = null;
+      const base = score(cur);
+      for (const x of bad.list) {
+        const b = x.b;
+        if (FIXED(b) || b.frequency !== 'monthly' || ov[b.id] !== undefined) continue;
+        for (const t of cur.weeks.slice(1)) {
+          if (t === bad || t.net - x.amount < 0) continue;
+          const pd = t.pays.length ? t.pays[0].d : t.a + 4 * DAY;
+          const day = new Date(pd + DAY).getUTCDate();
+          if (day > 28 || day === +b.due_day) continue;
+          const trial = planCalc({...ov, [b.id]: day});
+          const sc = score(trial);
+          if (sc > base && (!best || sc > best.sc + 0.5 || (Math.abs(sc - best.sc) <= 0.5 && x.amount > +best.b.amount))) best = {b, day, sc, trial, why: bad};
+        }
+      }
+      if (!best) break;
+      ov[best.b.id] = best.day;
+      moves.push({b: best.b, from: +best.b.due_day, to: best.day, week: best.why.a});
+      cur = best.trial;
+    }
+    return {moves, before: planCalc({}), after: cur};
+  }
+  function viewPlan() {
+    const {moves, before, after} = planMoves();
+    const shortBefore = before.weeks.slice(1).filter(w => w.net < 0).length;
+    const shortAfter = after.weeks.slice(1).filter(w => w.net < 0);
+    const savings = S.income.find(i => /savings/i.test(i.note || ''));
+    const hero = el('div', {class:'planhero'},
+      el('span', {class:'label', style:'color:#d6e6f6'}, 'Goal: every week ends at $0 or more'),
+      el('div', {class:'big'}, shortAfter.length ? `${shortAfter.length} week${shortAfter.length > 1 ? 's' : ''} still tight — see below` : moves.length ? `Do these ${moves.length + 1} things and every week stays above $0` : 'Set money aside for the mortgage and every week stays above $0'),
+      el('div', {class:'sub'}, shortBefore ? `Without a plan, ${shortBefore} of the next 8 weeks ${shortBefore === 1 ? 'runs' : 'run'} short.` : 'Your weeks already work — this keeps it that way.'));
+    const steps = el('div', {class:'panel'},
+      el('div', {class:'step'}, el('span', {class:'n'}, '1'), el('div', {},
+        el('div', {class:'t'}, `Keep ${money0.format(after.aside)} from every ${after.src ? after.src.source.replace(/ payroll/i, '') : ''} paycheck in savings for the mortgage`),
+        el('div', {class:'d'}, `The mortgage (${money0.format(after.mortMo)}) is bigger than any one paycheck, so it gets its own savings. `
+          + (savings ? `Your NYU pay already does this automatically — leave that savings money alone, and move ${money0.format(after.mortMo)} to checking a day or two before the 16th.` : `Move it to savings each payday, then back to checking right before the 16th.`)))),
+      ...moves.map((m, i) => el('div', {class:'step'}, el('span', {class:'n'}, String(i + 2)), el('div', {},
+        el('div', {class:'t'}, `Move ${m.b.name} to the ${ord(m.to)}`),
+        el('div', {class:'d'}, `Now due the ${ord(m.from)}. ${money.format(+m.b.amount)} — moving it to the day after a payday takes pressure off the week of ${fmtShort(m.week)}.`)))));
+    const moveBox = el('div', {class:'panel'});
+    for (const m of moves) {
+      const btn = S.canWrite ? el('button', {}, 'I changed it — update the app') : null;
+      if (btn) btn.onclick = async () => { btn.disabled = true; try { const {id, ...body} = m.b; await S.db.collection('bills').doc(id).set({...body, due_day: m.to}); toast(m.b.name + ' moved to the ' + ord(m.to)); } catch (e) { btn.disabled = false; failed(e); } };
+      moveBox.append(el('div', {class:'mv'}, el('div', {}, el('div', {style:'font-weight:600'}, m.b.name), el('div', {class:'small'}, el('span', {class:'from'}, ord(m.from)), ' → ', el('span', {class:'to'}, ord(m.to)), el('span', {class:'muted'}, ' · ' + money.format(+m.b.amount) + (m.b.autopay === 'Yes' ? ' · autopay' : '')))), el('span', {}), btn));
+    }
+    const wk = el('div', {class:'panel'});
+    const sgn = v => (v < 0 ? '−' : '+') + money0.format(Math.abs(v));
+    after.weeks.slice(0, 8).forEach((w, i) => wk.append(el('div', {class:'pw'},
+      el('span', {class:'wl'}, (i === 0 ? 'This week · ' : '') + fmtShort(w.a) + ' – ' + fmtShort(w.a + 6 * DAY)),
+      i === 0 ? el('span', {class:'note'}, 'Already under way — the plan starts next week.') : null,
+      el('span', {}, el('span', {class:'k'}, 'In'), el('span', {class:'num in'}, money0.format(w.inn))),
+      el('span', {}, el('span', {class:'k'}, 'Bills + save'), el('span', {class:'num out'}, money0.format(w.out + w.aside))),
+      el('span', {}, el('span', {class:'k'}, 'Left'), el('span', {class:'num ' + (w.net < 0 ? 'out' : 'in')}, sgn(w.net))),
+      w.mort ? el('span', {class:'note'}, `🏠 Mortgage ${money0.format(w.mort)} this week — paid from your set-aside, not this week’s pay.`) : null)));
+    return el('div', {class:'wrap'}, hero,
+      el('section', {}, el('h2', {}, 'What to do'), steps),
+      moves.length ? el('section', {}, el('div', {class:'sechead'}, el('h2', {}, 'Due dates to change'), el('span', {class:'small muted'}, 'Call or use each company’s app')), moveBox,
+        el('p', {class:'small muted', style:'margin:0'}, 'Most card companies, loans and utilities let you pick a due date. After you change it with them, tap the button so the app matches. Mortgage and Affirm/Klarna dates are left alone — those usually can’t move.')) : null,
+      el('section', {}, el('div', {class:'sechead'}, el('h2', {}, 'Your weeks with this plan'), el('span', {class:'small muted'}, 'Mon–Sun')), wk,
+        shortAfter.length ? el('p', {class:'small out', style:'margin:0'}, 'Weeks still in red: hold off on extras those weeks, or move a bit more from savings.') : null));
+  }
+
   // ---- views ----
   function viewHome() {
     const wkEnd = weekStart + 7 * DAY;
@@ -749,7 +865,7 @@ details.more .panel{border:0;border-radius:0}
     const allReady = Object.values(S.ready).every(Boolean);
     if (!S.db) { v.append(el('div', {class:'notice'}, S.dbChecked ? 'Sign in to Claude to see and edit your money. Your data is saved to your account, not this phone.' : 'Loading your bills…')); return; }
     if (!allReady) { v.append(el('div', {class:'notice'}, 'Loading your bills…')); return; }
-    v.append(({home:viewHome, weeks:viewWeeks, bills:viewBills, ask:viewAsk, money:viewMoney})[S.tab]());
+    v.append(({home:viewHome, weeks:viewWeeks, bills:viewBills, ask:viewAsk, money:viewMoney, plan:viewPlan})[S.tab]());
   }
   document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => {
     S.tab = b.dataset.tab;
